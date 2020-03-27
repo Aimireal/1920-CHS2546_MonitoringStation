@@ -9,9 +9,9 @@ import javax.swing.*;
 
 
 class HelloServant extends MonitoringSystemPOA {
-    private RelayServer parent;
+    private MonitoringCentre parent;
 
-    HelloServant(RelayServer parentGUI) {
+    HelloServant(MonitoringCentre parentGUI) {
         // store reference to parent GUI
         parent = parentGUI;
     }
@@ -24,10 +24,10 @@ class HelloServant extends MonitoringSystemPOA {
 }
 
 
-public class RelayServer extends JFrame {
+public class MonitoringCentre extends JFrame {
     private JTextArea textarea;
 
-    public RelayServer(String[] args){
+    public MonitoringCentre(String[] args){
         try {
             // create and initialize the ORB
             ORB orb = ORB.init(args, null);
@@ -91,7 +91,7 @@ public class RelayServer extends JFrame {
         final String[] arguments = args;
         java.awt.EventQueue.invokeLater(new Runnable() {
             public void run() {
-                new  RelayServer(arguments).setVisible(true);
+                new  MonitoringCentre(arguments).setVisible(true);
             }
         });
     }

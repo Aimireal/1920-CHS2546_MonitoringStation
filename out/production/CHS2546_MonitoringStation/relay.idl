@@ -3,7 +3,7 @@ module ClientAndServer {
         string fetch_message();
     };
 
-    interface HelloWorld {
+    interface MonitoringSystem {
 	string hello_world();
     };
 };

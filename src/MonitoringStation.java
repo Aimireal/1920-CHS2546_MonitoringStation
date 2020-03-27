@@ -10,10 +10,10 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 
 
-public class RelayClient extends JFrame {
+public class MonitoringStation extends JFrame {
     private JTextArea textarea;
 
-    public RelayClient(String[] args) {
+    public MonitoringStation(String[] args) {
         try {
             // create and initialize the ORB
             ORB orb = ORB.init(args, null);
@@ -75,7 +75,7 @@ public class RelayClient extends JFrame {
         final String[] arguments = args;
         EventQueue.invokeLater(new Runnable() {
             public void run() {
-                new  RelayClient(arguments).setVisible(true);
+                new MonitoringStation(arguments).setVisible(true);
             }
         });
     }
