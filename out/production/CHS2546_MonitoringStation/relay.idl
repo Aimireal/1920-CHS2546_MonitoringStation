@@ -1,0 +1,9 @@
+module ClientAndServer {
+    interface Relay {
+        string fetch_message();
+    };
+
+    interface HelloWorld {
+	string hello_world();
+    };
+};
