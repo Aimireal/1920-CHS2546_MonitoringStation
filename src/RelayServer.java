@@ -8,7 +8,7 @@ import java.io.*;
 import javax.swing.*;
 
 
-class HelloServant extends HelloWorldPOA {
+class HelloServant extends MonitoringSystemPOA {
     private RelayServer parent;
 
     HelloServant(RelayServer parentGUI) {

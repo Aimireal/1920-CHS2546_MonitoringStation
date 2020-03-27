@@ -12,7 +12,7 @@ import javax.swing.*;
 class RelayServant extends RelayPOA {
 
     private ORB orb;
-    private ClientAndServer.HelloWorld server;
+    private ClientAndServer.MonitoringSystem server;
     private Relay parent;
 
     RelayServant(Relay parentGUI, ORB orb_val) {
@@ -32,7 +32,7 @@ class RelayServant extends RelayPOA {
             // get object reference from stringified IOR
             org.omg.CORBA.Object server_ref =
                     orb.string_to_object(stringified_ior);
-            server = ClientAndServer.HelloWorldHelper.narrow(server_ref);
+            server = ClientAndServer.MonitoringSystemHelper.narrow(server_ref);
         } catch (Exception e) {
             System.out.println("ERROR : " + e) ;
             e.printStackTrace(System.out);
