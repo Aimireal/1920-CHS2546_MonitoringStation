@@ -17,7 +17,7 @@ public abstract class MonitoringSystemPOA extends org.omg.PortableServer.Servant
   private static java.util.Hashtable _methods = new java.util.Hashtable ();
   static
   {
-    _methods.put ("hello_world", new java.lang.Integer (0));
+    _methods.put ("alertMessage", new java.lang.Integer (0));
   }
 
   public org.omg.CORBA.portable.OutputStream _invoke (String $method,
@@ -31,10 +31,10 @@ public abstract class MonitoringSystemPOA extends org.omg.PortableServer.Servant
 
     switch (__method.intValue ())
     {
-       case 0:  // ClientAndServer/MonitoringSystem/hello_world
+       case 0:  // ClientAndServer/MonitoringSystem/alertMessage
        {
          String $result = null;
-         $result = this.hello_world ();
+         $result = this.alertMessage ();
          out = $rh.createReply();
          out.write_string ($result);
          break;

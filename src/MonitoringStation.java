@@ -35,8 +35,9 @@ public class MonitoringStation extends JFrame {
             JScrollPane scrollpane = new JScrollPane(textarea);
             JPanel textpanel = new JPanel();
 
-            JPanel buttonpanel = new JPanel();
-            JButton getItButton = new JButton("Call Relay");
+            JPanel buttonPanel = new JPanel();
+
+            JButton getItButton = new JButton("NOx Reading");
             getItButton.addActionListener (new ActionListener() {
                 public void actionPerformed (ActionEvent evt) {
                     textarea.append("Calling relay...\n");
@@ -45,15 +46,22 @@ public class MonitoringStation extends JFrame {
                 }
             });
 
+            JButton registerButton = new JButton("Register");
+            registerButton.addActionListener(new ActionListener(){
+                public void actionPerformed (ActionEvent evt) {
+                    //ToDO: Need to open allow a user to choose a Local Centre here
+                }
+            });
 
             textpanel.add(scrollpane);
-            buttonpanel.add(getItButton);
+            buttonPanel.add(getItButton);
+            buttonPanel.add(registerButton);
 
             getContentPane().add(textpanel, "Center");
-            getContentPane().add(buttonpanel, "South");
+            getContentPane().add(buttonPanel, "South");
 
             setSize(400, 500);
-            setTitle("Relay Demo Client");
+            setTitle("Monitoring Station");
 
             addWindowListener (new WindowAdapter () {
                 public void windowClosing (WindowEvent evt) {

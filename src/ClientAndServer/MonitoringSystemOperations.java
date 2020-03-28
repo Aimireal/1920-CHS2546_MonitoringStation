@@ -10,5 +10,5 @@ package ClientAndServer;
 
 public interface MonitoringSystemOperations 
 {
-  String hello_world ();
+  String alertMessage ();
 } // interface MonitoringSystemOperations

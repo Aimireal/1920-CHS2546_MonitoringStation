@@ -4,6 +4,8 @@ import org.omg.PortableServer.*;
 import org.omg.PortableServer.POA;
 import org.omg.CORBA.*;
 
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.io.*;
 import javax.swing.*;
 
@@ -13,9 +15,9 @@ class RelayServant extends RelayPOA {
 
     private ORB orb;
     private ClientAndServer.MonitoringSystem server;
-    private Relay parent;
+    private LocalServer parent;
 
-    RelayServant(Relay parentGUI, ORB orb_val) {
+    RelayServant(LocalServer parentGUI, ORB orb_val) {
         // store reference to parent GUI
         parent = parentGUI;
 
@@ -42,7 +44,7 @@ class RelayServant extends RelayPOA {
     public String fetch_message() {
         parent.addMessage("fetch_message called by client.  Calling server..\n");
 
-        String messageFromServer = server.hello_world();
+        String messageFromServer = server.alertMessage();
 
         parent.addMessage("message from server = " + messageFromServer + "\n"
                 + "   Now forwarding to client..\n\n");
@@ -52,10 +54,10 @@ class RelayServant extends RelayPOA {
 }
 
 
-public class Relay extends JFrame {
+public class LocalServer extends JFrame {
     private JTextArea textarea;
 
-    public Relay(String[] args) {
+    public LocalServer(String[] args) {
         try {
             // create and initialize the ORB
             ORB orb = ORB.init(args, null);
@@ -76,17 +78,27 @@ public class Relay extends JFrame {
             out.write(stringified_ior);
             out.close();
 
-
             // set up the GUI
             textarea = new JTextArea(20,25);
             JScrollPane scrollpane = new JScrollPane(textarea);
-            JPanel panel = new JPanel();
+            JPanel textPanel = new JPanel();
 
-            panel.add(scrollpane);
-            getContentPane().add(panel, "Center");
+            JPanel buttonPanel = new JPanel();
+            JButton pollButton = new JButton("Poll");
+            pollButton.addActionListener(new ActionListener(){
+                public void actionPerformed (ActionEvent evt) {
+                    //ToDO: Need to open allow a user to choose a Local Centre here
+                }
+            });
+
+            textPanel.add(scrollpane);
+            buttonPanel.add(pollButton);
+
+            getContentPane().add(textPanel, "Center");
+            getContentPane().add(buttonPanel, "South");
 
             setSize(400, 500);
-            setTitle("Relay Demo Relay");
+            setTitle("Local Server");
 
             addWindowListener (new java.awt.event.WindowAdapter () {
                 public void windowClosing (java.awt.event.WindowEvent evt) {
@@ -118,7 +130,7 @@ public class Relay extends JFrame {
         final String[] arguments = args;
         java.awt.EventQueue.invokeLater(new Runnable() {
             public void run() {
-                new  Relay(arguments).setVisible(true);
+                new  LocalServer(arguments).setVisible(true);
             }
         });
     }

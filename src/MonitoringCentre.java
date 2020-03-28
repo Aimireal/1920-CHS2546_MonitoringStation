@@ -4,6 +4,8 @@ import org.omg.CORBA.*;
 import org.omg.PortableServer.*;
 import org.omg.PortableServer.POA;
 
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.io.*;
 import javax.swing.*;
 
@@ -16,10 +18,9 @@ class HelloServant extends MonitoringSystemPOA {
         parent = parentGUI;
     }
 
-    public String hello_world() {
-        parent.addMessage("hello_world called by relay.\n    Replying with message...\n\n");
-
-        return "Hello World!!";
+    public String alertMessage() {
+        parent.addMessage("Alert called by relay.\n    Replying with message...\n\n");
+        return "ping";
     }
 }
 
@@ -48,17 +49,27 @@ public class MonitoringCentre extends JFrame {
             out.write(stringified_ior);
             out.close();
 
-
             // set up the GUI
             textarea = new JTextArea(20,25);
             JScrollPane scrollpane = new JScrollPane(textarea);
-            JPanel panel = new JPanel();
+            JPanel textPanel = new JPanel();
 
-            panel.add(scrollpane);
-            getContentPane().add(panel, "Center");
+            JPanel buttonPanel = new JPanel();
+            JButton pollButton = new JButton("Poll");
+            pollButton.addActionListener(new ActionListener(){
+                public void actionPerformed (ActionEvent evt) {
+                    //ToDO: Need to open allow a user to choose a Local Centre here
+                }
+            });
+
+            textPanel.add(scrollpane);
+            buttonPanel.add(pollButton);
+
+            getContentPane().add(textPanel, "Center");
+            getContentPane().add(buttonPanel, "South");
 
             setSize(400, 500);
-            setTitle("Relay Demo Server");
+            setTitle("Monitoring Centre");
 
             addWindowListener (new java.awt.event.WindowAdapter () {
                 public void windowClosing (java.awt.event.WindowEvent evt) {

@@ -11,11 +11,11 @@ package ClientAndServer;
 public class _MonitoringSystemStub extends org.omg.CORBA.portable.ObjectImpl implements ClientAndServer.MonitoringSystem
 {
 
-  public String hello_world ()
+  public String alertMessage ()
   {
             org.omg.CORBA.portable.InputStream $in = null;
             try {
-                org.omg.CORBA.portable.OutputStream $out = _request ("hello_world", true);
+                org.omg.CORBA.portable.OutputStream $out = _request ("alertMessage", true);
                 $in = _invoke ($out);
                 String $result = $in.read_string ();
                 return $result;
@@ -24,11 +24,11 @@ public class _MonitoringSystemStub extends org.omg.CORBA.portable.ObjectImpl imp
                 String _id = $ex.getId ();
                 throw new org.omg.CORBA.MARSHAL (_id);
             } catch (org.omg.CORBA.portable.RemarshalException $rm) {
-                return hello_world (        );
+                return alertMessage (        );
             } finally {
                 _releaseReply ($in);
             }
-  } // hello_world
+  } // alertMessage
 
   // Type-specific CORBA::Object operations
   private static String[] __ids = {

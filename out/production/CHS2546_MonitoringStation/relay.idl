@@ -4,6 +4,6 @@ module ClientAndServer {
     };
 
     interface MonitoringSystem {
-	string hello_world();
+	string alertMessage();
     };
 };
