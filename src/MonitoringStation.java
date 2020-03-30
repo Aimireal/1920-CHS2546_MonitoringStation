@@ -1,7 +1,6 @@
 import AssignmentTwo.*;
 import org.omg.CORBA.ORB;
 import org.omg.CosNaming.NameComponent;
-import org.omg.CosNaming.NamingContextExt;
 import org.omg.CosNaming.NamingContextExtHelper;
 import org.omg.PortableServer.POA;
 import org.omg.PortableServer.POAHelper;
@@ -10,8 +9,6 @@ import javax.swing.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
-import java.io.BufferedWriter;
-import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.Calendar;
 
@@ -35,7 +32,7 @@ class MonitoringStationServant extends MonitoringStationPOA
         //Get Reading
         int readingValue = parent.getReadingValue();
         String stationName = get_info().station_name;
-        int time = 0;
+        int time = getTime();
         int date = Calendar.getInstance().get(Calendar.DAY_OF_YEAR);
 
         //Create and check value of reading
@@ -99,6 +96,14 @@ class MonitoringStationServant extends MonitoringStationPOA
         parent.clearLog();
         readings.clear();
     }
+
+    public int getTime()
+    {
+        //ToDo: Change this or make it generic or do it in where we call this method.
+        int hours = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
+        int minute = Calendar.getInstance().get(Calendar.MINUTE);
+        return hours * 60 + minute;
+    }
 }
 
 public class MonitoringStation extends JFrame
@@ -108,6 +113,7 @@ public class MonitoringStation extends JFrame
     private String location;
     private String localServer;
 
+    MonitoringStationServant servant = new MonitoringStationServant(this);
     AssignmentTwo.LocalServer localServant;
 
     //Servant setup
@@ -135,18 +141,16 @@ public class MonitoringStation extends JFrame
                 POA rootpoa = POAHelper.narrow(orb.resolve_initial_references("RootPOA"));
                 rootpoa.the_POAManager().activate();
 
-                //Create servant and register with the ORB
-                MonitoringStationServant servant = new MonitoringStationServant(this);
-
+                /*
                 //Get the 'stringified IOR'
-                //org.omg.CORBA.Object ref = rootpoa.servant_to_reference(servant);
-                //String stringifiedIOR = orb.object_to_string(ref);
+                org.omg.CORBA.Object ref = rootpoa.servant_to_reference(servant);
+                String stringifiedIOR = orb.object_to_string(ref);
 
-                //ToDo: Example does commented code instead of Save IOR to file check if this works.
                 //Save IOR to file
-                //BufferedWriter out = new BufferedWriter(new FileWriter("Server.Ref"));
-                //out.write(stringifiedIOR);
-                //out.close();
+                BufferedWriter out = new BufferedWriter(new FileWriter("Server.Ref"));
+                out.write(stringifiedIOR);
+                out.close();
+                 */
 
                 //Get the 'stringified IOR' and bind to naming service
                 org.omg.CORBA.Object ref = rootpoa.servant_to_reference(servant);
@@ -168,7 +172,7 @@ public class MonitoringStation extends JFrame
                 localServant = LocalServerHelper.narrow(nameService.resolve_str(localServer));
                 localServant.register_monitoring_station(newStationDetails);
 
-                //Setup GUI
+                //Setup GUI and button functionality
                 setupGUI();
 
             } catch(Exception e)
@@ -197,36 +201,92 @@ public class MonitoringStation extends JFrame
 
     public void setupGUI()
     {
-        //ToDo Setup GUI
+        //Draw GUI
+        JTextArea textarea = new JTextArea(20, 25);
+        JScrollPane scrollPane = new JScrollPane(textarea);
+        JPanel panel = new JPanel();
 
+        JSlider readingSlider = new JSlider(0, 50);
+        JButton readingButton = new JButton("Get Reading");
+        JButton activateButton = new JButton("Activate");
+        JButton deactivateButton = new JButton("Deactivate");
+        JButton resetButton = new JButton("Reset");
 
-        setupListeners();
-    }
+        panel.add(readingSlider);
+        panel.add(readingButton);
+        panel.add(activateButton);
+        panel.add(deactivateButton);
+        panel.add(resetButton);
+        panel.add(scrollPane);
+        getContentPane().add(panel, "Center");
 
-    public void setupListeners()
-    {
-        //ToDo Setup Listeners
+        setSize(350, 450);
+        setTitle("Monitoring Station: ");
+
+        textarea.append("Station activated");
+
+        //Setup button functionality
+        addWindowListener(new java.awt.event.WindowAdapter()
+        {
+            public void windowClosing(java.awt.event.WindowEvent evt)
+            {
+                System.exit(0);
+            }
+        });
+
+        readingButton.addActionListener(new ActionListener()
+        {
+            @Override
+            public void actionPerformed(ActionEvent actionEvent)
+            {
+                servant.take_reading();
+                populateLog();
+            }
+        });
+
+        activateButton.addActionListener(new ActionListener()
+        {
+            @Override
+            public void actionPerformed(ActionEvent actionEvent)
+            {
+                servant.activate();
+            }
+        });
+
+        deactivateButton.addActionListener(new ActionListener()
+        {
+            @Override
+            public void actionPerformed(ActionEvent actionEvent)
+            {
+                servant.deactivate();
+            }
+        });
+
+        resetButton.addActionListener(new ActionListener()
+        {
+            @Override
+            public void actionPerformed(ActionEvent actionEvent)
+            {
+                servant.reset();
+            }
+        });
     }
 
     public int getReadingValue()
     {
-        //ToDo: Control to set readingvalue to return what is here
+        //ToDo: Get the value off of the JSlider
         return 0;
-    }
-
-    private void initListeners()
-    {
-        //Button and window operations
     }
 
     public void populateLog()
     {
-
+        //ToDo: Get our Log from the servant object and write them into the JTextArea
+        clearLog();
     }
 
     public void clearLog()
     {
-
+        //ToDo: Get our JTextArea and replace text with empty string
     }
 }
 
