@@ -1,9 +1,0 @@
-module ClientAndServer {
-    interface Relay {
-        string fetch_message();
-    };
-
-    interface MonitoringSystem {
-	string alertMessage();
-    };
-};

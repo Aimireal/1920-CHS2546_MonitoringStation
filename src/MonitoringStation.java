@@ -1,104 +1,232 @@
+import AssignmentTwo.*;
 import org.omg.CORBA.ORB;
+import org.omg.CosNaming.NameComponent;
+import org.omg.CosNaming.NamingContextExt;
+import org.omg.CosNaming.NamingContextExtHelper;
+import org.omg.PortableServer.POA;
+import org.omg.PortableServer.POAHelper;
 
 import javax.swing.*;
-import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.util.Objects;
 
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.util.ArrayList;
+import java.util.Calendar;
 
-public class MonitoringStation extends JFrame {
-    private JTextArea textarea;
+class MonitoringStationServant extends MonitoringStationPOA
+{
+    public StationDetails stationDetails;
+    private MonitoringStation parent;
+    private ArrayList<Reading> readings;
+    private Timer timer;
+    private static final int readingAlarm = 25;
 
-    public MonitoringStation(String[] args) {
-        try {
-            // create and initialize the ORB
-            ORB orb = ORB.init(args, null);
+    public MonitoringStationServant(MonitoringStation parentGUI)
+    {
+        parent = parentGUI;
+        readings = new ArrayList<>();
+    }
 
-            // read in the 'stringified IOR' of the Relay
-            BufferedReader in = new BufferedReader(new FileReader("relay.ref"));
-            String stringified_ior = in.readLine();
+    @Override
+    public Reading reading()
+    {
+        //Get Reading
+        int readingValue = parent.getReadingValue();
+        String stationName = get_info().station_name;
+        int time = 0;
+        int date = Calendar.getInstance().get(Calendar.DAY_OF_YEAR);
 
-            // get object reference from stringified IOR
-            org.omg.CORBA.Object server_ref =
-                    orb.string_to_object(stringified_ior);
+        //Create and check value of reading
+        Reading reading = new Reading(time, date, stationName, readingValue);
+        if(readingValue >= readingAlarm)
+        {
+            parent.localServant.send_alert(reading);
+        }
+        parent.populateLog();
+        return reading;
+    }
 
-            final ClientAndServer.Relay relay =
-                    ClientAndServer.RelayHelper.narrow(server_ref);
+    @Override
+    public Reading[] reading_log()
+    {
+        return readings.toArray(new Reading[0]);
+    }
 
+    @Override
+    public void take_reading()
+    {
+        readings.add(reading());
+    }
 
-            // set up the GUI
-            JPanel textpanel = new JPanel();
-            textarea = new JTextArea(20,25);
-            JScrollPane scrollpane = new JScrollPane(textarea);
+    @Override
+    public void set_info(StationDetails info)
+    {
+        this.stationDetails = info;
+    }
 
-            JButton registerButton = new JButton("Register");
-            registerButton.addActionListener(new ActionListener(){
-                public void actionPerformed (ActionEvent evt) {
-                    //ToDO: Need to open allow a user to choose a Local Centre here
-                }
-            });
+    @Override
+    public StationDetails get_info()
+    {
+        return stationDetails;
+    }
 
-            JPanel noxPanel = new JPanel();
-            JComboBox<String> noxComboBox = new JComboBox<String>();
-            noxComboBox.addItem("0-50 (Good)");
-            noxComboBox.addItem("51-100 (Moderate)");
-            noxComboBox.addItem("101-150 (Risk for Vulnerable)");
-            noxComboBox.addItem("151-200 (Unhealthy)");
-            noxComboBox.addItem("201+ (Very Unhealthy)");
-            JLabel noxLabel = new JLabel("Nox Readings: ");
+    @Override
+    public void activate()
+    {
+        timer = new Timer(5000, new ActionListener()
+        {
+            @Override
+            public void actionPerformed(ActionEvent actionEvent)
+            {
+                take_reading();
+                parent.populateLog();
+            }
+        });
+        timer.start();
+    }
 
-            JPanel buttonPanel = new JPanel();
-            JButton getItButton = new JButton("NOx Reading");
-            getItButton.addActionListener (new ActionListener() {
-                public void actionPerformed (ActionEvent evt) {
-                    String selectedReading = Objects.requireNonNull(noxComboBox.getSelectedItem()).toString();
-                    textarea.append(selectedReading);
-                    String result = relay.fetch_message();
-                    textarea.append("   Result = " + result + "\n\n");
-                }
-            });
+    @Override
+    public void deactivate()
+    {
+        timer.stop();
+    }
 
-            // Adding Panels to window
-            textpanel.add(scrollpane);
-            buttonPanel.add(getItButton);
-            buttonPanel.add(registerButton);
-            noxPanel.add(noxLabel);
-            noxPanel.add(noxComboBox);
+    @Override
+    public void reset()
+    {
+        parent.clearLog();
+        readings.clear();
+    }
+}
 
-            getContentPane().add(noxPanel, "North");
-            getContentPane().add(textpanel, "Center");
-            getContentPane().add(buttonPanel, "South");
+public class MonitoringStation extends JFrame
+{
+    //Args
+    private String name;
+    private String location;
+    private String localServer;
 
-            setSize(400, 500);
-            setTitle("Monitoring Station");
+    AssignmentTwo.LocalServer localServant;
 
-            addWindowListener (new WindowAdapter () {
-                public void windowClosing (WindowEvent evt) {
-                    System.exit(0);
-                }
-            } );
+    //Servant setup
+    public MonitoringStation(String[] args)
+    {
+        //Check input and start servant
+        if(args.length >= 3)
+        {
+            //Populate args
+            name = args[0];
+            location = args[1];
+            localServer = args[2];
 
-            textarea.append("Client started.  Click the button to contact relay...\n\n");
+            if(name == null || location == null || localServer == null)
+            {
+                System.out.println("Ensure values entered correctly");
+                return;
+            }
+            try
+            {
+                //Create and initialize the ORB
+                ORB orb = ORB.init(args, null);
 
-        } catch (Exception e) {
-            System.out.println("ERROR : " + e) ;
-            e.printStackTrace(System.out);
+                //Get reference to rootpoa & activate the POAManager
+                POA rootpoa = POAHelper.narrow(orb.resolve_initial_references("RootPOA"));
+                rootpoa.the_POAManager().activate();
+
+                //Create servant and register with the ORB
+                MonitoringStationServant servant = new MonitoringStationServant(this);
+
+                //Get the 'stringified IOR'
+                //org.omg.CORBA.Object ref = rootpoa.servant_to_reference(servant);
+                //String stringifiedIOR = orb.object_to_string(ref);
+
+                //ToDo: Example does commented code instead of Save IOR to file check if this works.
+                //Save IOR to file
+                //BufferedWriter out = new BufferedWriter(new FileWriter("Server.Ref"));
+                //out.write(stringifiedIOR);
+                //out.close();
+
+                //Get the 'stringified IOR' and bind to naming service
+                org.omg.CORBA.Object ref = rootpoa.servant_to_reference(servant);
+                AssignmentTwo.MonitoringStation narrowRef = MonitoringStationHelper.narrow(ref);
+                StationDetails newStationDetails = new StationDetails(name, location);
+                servant.set_info(newStationDetails);
+
+                //Naming service setup
+                org.omg.CORBA.Object namingServiceObj = orb.resolve_initial_references("NameService");
+                if(namingServiceObj == null)
+                    return;
+
+                org.omg.CosNaming.NamingContextExt nameService = NamingContextExtHelper.narrow(namingServiceObj);
+
+                //Bind our monitoring station object in the naming service against our local server
+                NameComponent[] nsName = nameService.to_name(name);
+                nameService.rebind(nsName, narrowRef);
+
+                localServant = LocalServerHelper.narrow(nameService.resolve_str(localServer));
+                localServant.register_monitoring_station(newStationDetails);
+
+                //Setup GUI
+                setupGUI();
+
+            } catch(Exception e)
+            {
+                System.err.println("Error: " + e);
+                e.printStackTrace(System.out);
+            }
+        } else
+        {
+            System.out.println("You need to specify all details");
         }
     }
 
-
-
-    public static void main(String[] args) {
+    public static void main(String[] args)
+    {
         final String[] arguments = args;
-        EventQueue.invokeLater(new Runnable() {
-            public void run() {
+        java.awt.EventQueue.invokeLater(new Runnable()
+        {
+            @Override
+            public void run()
+            {
                 new MonitoringStation(arguments).setVisible(true);
             }
         });
     }
+
+    public void setupGUI()
+    {
+        //ToDo Setup GUI
+
+
+        setupListeners();
+    }
+
+    public void setupListeners()
+    {
+        //ToDo Setup Listeners
+    }
+
+    public int getReadingValue()
+    {
+        //ToDo: Control to set readingvalue to return what is here
+        return 0;
+    }
+
+    private void initListeners()
+    {
+        //Button and window operations
+    }
+
+    public void populateLog()
+    {
+
+    }
+
+    public void clearLog()
+    {
+
+    }
 }
+
