@@ -14,6 +14,7 @@ import java.util.Calendar;
 
 class MonitoringStationServant extends MonitoringStationPOA
 {
+    //Args
     public StationDetails stationDetails;
     private MonitoringStation parent;
     private ArrayList<Reading> readings;
@@ -165,7 +166,7 @@ public class MonitoringStation extends JFrame
 
                 org.omg.CosNaming.NamingContextExt nameService = NamingContextExtHelper.narrow(namingServiceObj);
 
-                //Bind our monitoring station object in the naming service against our local server
+                //Bind our object in the naming service against the object it is part of
                 NameComponent[] nsName = nameService.to_name(name);
                 nameService.rebind(nsName, narrowRef);
 
