@@ -1,8 +1,13 @@
 import AssignmentTwo.*;
+import AssignmentTwo.MonitoringStation;
+import com.sun.media.sound.AlawCodec;
 import org.omg.CORBA.ORB;
 import org.omg.CosNaming.NameComponent;
 import org.omg.CosNaming.NamingContextExt;
 import org.omg.CosNaming.NamingContextExtHelper;
+import org.omg.CosNaming.NamingContextPackage.CannotProceed;
+import org.omg.CosNaming.NamingContextPackage.InvalidName;
+import org.omg.CosNaming.NamingContextPackage.NotFound;
 import org.omg.PortableServer.POA;
 import org.omg.PortableServer.POAHelper;
 
@@ -10,8 +15,12 @@ import javax.swing.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
+import java.lang.reflect.Array;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Iterator;
+import java.util.stream.Collectors;
 
 
 class LocalServerServant extends LocalServerPOA
@@ -55,55 +64,134 @@ class LocalServerServant extends LocalServerPOA
     @Override
     public StationDetails[] connected_servers()
     {
-        return new StationDetails[0];
+        return connectedStations.toArray(new StationDetails[0]);
     }
 
     @Override
     public ServerDetails get_centre_info()
     {
-        return null;
+        return serverDetails;
     }
 
     @Override
     public void set_info(ServerDetails info)
     {
-
+        this.serverDetails = serverDetails;
     }
 
     @Override
     public Reading[] all_readings()
     {
-        return new Reading[0];
+        for(StationDetails server : connectedStations)
+        {
+            String stationName = server.station_name;
+            try
+            {
+                //Station reference
+                MonitoringStation monitoringStation = MonitoringStationHelper.narrow(namingService.resolve_str(stationName));
+                ArrayList<Reading> allReadings = new ArrayList<>(Arrays.asList(monitoringStation.reading_log()));
+
+                //Check if we have any new readings
+                //ToDo: We might only need to check Date/Time and station name. Probably can do this in line?
+                if(allReadings.size() != 0)
+                {
+                    for (Reading nextReading : allReadings)
+                    {
+                        if (!readingReader(readings, nextReading))
+                        {
+                            readings.add(nextReading);
+                        }
+                    }
+                }
+            } catch(Exception e)
+            {
+                e.printStackTrace();
+            }
+        }
+        return readings.toArray(new Reading[0]);
     }
 
     @Override
     public Reading[] get_readings(String station_name)
     {
+        try
+        {
+            MonitoringStation monitoringStation = MonitoringStationHelper.narrow(namingService.resolve_str(station_name));
+            return monitoringStation.reading_log();
+        } catch(Exception e)
+        {
+            e.printStackTrace();
+        }
         return new Reading[0];
     }
 
     @Override
     public Reading[] get_current_readings()
     {
-        return new Reading[0];
+        ArrayList<Reading> readings = new ArrayList<>();
+        for(ServerDetails s: connectedStations())
+        {
+            try
+            {
+                MonitoringStation monitoringStation = MonitoringStationHelper.narrow(namingService.resolve_str(s.server_name));
+                readings.add(monitoringStation.reading());
+            } catch(NotFound | CannotProceed | InvalidName e)
+            {
+                e.printStackTrace();
+                return new Reading[0];
+            }
+        }
+        return readings.toArray(new Reading[0]);
     }
 
     @Override
     public Reading[] alerts()
     {
-        return new Reading[0];
+        return alarms.toArray(new Reading[0]);
     }
 
     @Override
     public void register_monitoring_station(StationDetails info)
     {
-
+        connectedStations.add(info);
     }
 
+    //ToDo: Look for a new way to do this stuff and fix monitoringCentre not being known
     @Override
     public void send_alert(Reading reading)
     {
+        ArrayList<Reading> alerts = alarms.stream().filter(
+                r->!r.station_name.equals(reading.station_name)
+                && r.date == reading.date
+                && (r.time + timePeriod >= reading.time || r.time == reading.time))
+                .collect(Collectors.toCollection(ArrayList::new));
 
+        if(!readingReader(alarms, reading))
+        {
+            alarms.add(reading);
+            alerts.add(reading);
+        }
+
+        if(alerts.size() > 1)
+        {
+            Alert alert = new Alert(this.get_centre_info().server_name, alerts.toArray(new Reading[0]));
+            //parent.monitoringCentre.send_alert(alert);
+        }
+    }
+
+    public boolean readingReader(ArrayList<Reading> list, Reading r)
+    {
+        for(Reading reading: list)
+        {
+            if((reading.reading_level == r.reading_level)
+                    && (reading.station_name.equals(r.station_name))
+                    && (reading.date == r.date)
+                    && (reading.time == r.time))
+            {
+                return true;
+            }
+        }
+        return false;
     }
 }
 

@@ -14,6 +14,88 @@ import java.awt.event.ActionListener;
 import java.util.ArrayList;
 import java.util.Calendar;
 
+
+class MonitoringCentreServant extends MonitoringCentrePOA
+{
+    private ArrayList<StationDetails> connectedStations;
+    private ArrayList<Reading> readings;
+    private ArrayList<Reading> alarms;
+
+    //Args
+    private ServerDetails serverDetails;
+    private MonitoringCentre parent;
+    private ORB orb;
+    private NamingContextExt namingService;
+
+    private int timePeriod = 1;
+
+    public MonitoringCentreServant(ORB orbValue, MonitoringCentre parent)
+    {
+        this.parent = parent;
+        connectedStations = new ArrayList<>();
+        readings = new ArrayList<>();
+        alarms = new ArrayList<>();
+
+        try
+        {
+            orb = orbValue;
+
+            org.omg.CORBA.Object namingServiceObj = orb.resolve_initial_references("NameService");
+            if(namingServiceObj == null)
+                return;
+
+            namingService = NamingContextExtHelper.narrow(namingServiceObj);
+        } catch(Exception e)
+        {
+            System.err.println("Error: " + e);
+            e.printStackTrace(System.out);
+        }
+    }
+
+    //ToDo Overrides
+    @Override
+    public Reading[] all_readings()
+    {
+        return new Reading[0];
+    }
+
+    @Override
+    public Reading[] get_readings(String server_name)
+    {
+        return new Reading[0];
+    }
+
+    @Override
+    public ServerDetails[] connected_servers()
+    {
+        return new ServerDetails[0];
+    }
+
+    @Override
+    public void register_local_server(ServerDetails info)
+    {
+
+    }
+
+    @Override
+    public void unregister_local_server(ServerDetails info)
+    {
+
+    }
+
+    @Override
+    public void send_alert(Alert alert)
+    {
+
+    }
+
+    @Override
+    public void register_agency(Agency agency)
+    {
+
+    }
+}
+
 public class MonitoringCentre extends JFrame
 {
     public MonitoringCentre(String[] args)
