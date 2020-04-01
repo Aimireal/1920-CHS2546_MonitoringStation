@@ -120,9 +120,8 @@ class LocalServerServant extends LocalServerPOA
             return monitoringStation.reading_log();
         } catch(Exception e)
         {
-            e.printStackTrace();
+            return new Reading[0];
         }
-        return new Reading[0];
     }
 
     @Override
@@ -156,7 +155,7 @@ class LocalServerServant extends LocalServerPOA
         connectedStations.add(info);
     }
 
-    //ToDo: Look for a new way to do this stuff and fix monitoringCentre not being known
+    //ToDo: Look for a new way to do this stuff and fix monitoringCentre not being known. It might be monitoringStation it wants even
     @Override
     public void send_alert(Reading reading)
     {
