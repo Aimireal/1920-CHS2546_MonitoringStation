@@ -18,8 +18,9 @@ class MonitoringStationServant extends MonitoringStationPOA
     public StationDetails stationDetails;
     private MonitoringStation parent;
     private ArrayList<Reading> readings;
+
     private Timer timer;
-    private static final int readingAlarm = 25;
+    private static final int readingAlert= 25;
 
     public MonitoringStationServant(MonitoringStation parentGUI)
     {
@@ -38,7 +39,7 @@ class MonitoringStationServant extends MonitoringStationPOA
 
         //Create and check value of reading
         Reading reading = new Reading(time, date, stationName, readingValue);
-        if(readingValue >= readingAlarm)
+        if(readingValue >= readingAlert)
         {
             parent.localServant.send_alert(reading);
         }
@@ -114,6 +115,10 @@ public class MonitoringStation extends JFrame
     private String location;
     private String localServer;
 
+    //Initialise GUI elements
+    private JTextArea textarea;
+    private JSlider readingSlider;
+
     MonitoringStationServant servant = new MonitoringStationServant(this);
     AssignmentTwo.LocalServer localServant;
 
@@ -141,17 +146,6 @@ public class MonitoringStation extends JFrame
                 //Get reference to rootpoa & activate the POAManager
                 POA rootpoa = POAHelper.narrow(orb.resolve_initial_references("RootPOA"));
                 rootpoa.the_POAManager().activate();
-
-                /*
-                //Get the 'stringified IOR'
-                org.omg.CORBA.Object ref = rootpoa.servant_to_reference(servant);
-                String stringifiedIOR = orb.object_to_string(ref);
-
-                //Save IOR to file
-                BufferedWriter out = new BufferedWriter(new FileWriter("Server.Ref"));
-                out.write(stringifiedIOR);
-                out.close();
-                 */
 
                 //Get the 'stringified IOR' and bind to naming service
                 org.omg.CORBA.Object ref = rootpoa.servant_to_reference(servant);
@@ -275,19 +269,21 @@ public class MonitoringStation extends JFrame
 
     public int getReadingValue()
     {
-        //ToDo: Get the value off of the JSlider
-        return 0;
+        return readingSlider.getValue();
     }
 
     public void populateLog()
     {
-        //ToDo: Get our Log from the servant object and write them into the JTextArea
         clearLog();
+        for(Reading reading: servant.reading_log())
+        {
+            textarea.append("Reading value: " + reading.reading_level);
+        }
     }
 
     public void clearLog()
     {
-        //ToDo: Get our JTextArea and replace text with empty string
+        textarea.setText("");
     }
 }
 

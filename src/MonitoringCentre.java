@@ -1,5 +1,7 @@
 import AssignmentTwo.*;
 import AssignmentTwo.LocalServer;
+import AssignmentTwo.MonitoringStation;
+import com.sun.security.ntlm.Server;
 import org.omg.CORBA.ORB;
 import org.omg.CosNaming.NameComponent;
 import org.omg.CosNaming.NamingContextExt;
@@ -107,22 +109,16 @@ class MonitoringCentreServant extends MonitoringCentrePOA
     }
 
     @Override
-    public void register_local_server(ServerDetails info)
+    public void register_local_server(ServerDetails serverDetails)
     {
-        connectedServers.add(info);
-        //ToDo: Implement addToCentreList
+        connectedServers.add(serverDetails);
+        parent.addToServerList(serverDetails);
     }
 
     @Override
-    public void unregister_local_server(ServerDetails info)
+    public void unregister_local_server(ServerDetails serverDetails)
     {
-        for(ServerDetails server: connectedServers)
-        {
-            if(server.server_name.equals(info.server_name))
-            {
-                connectedServers.remove(server);
-            }
-        }
+        connectedServers.removeIf(server -> server.server_name.equals(serverDetails.server_name));
     }
 
     @Override
@@ -134,7 +130,26 @@ class MonitoringCentreServant extends MonitoringCentrePOA
             public void run()
             {
                 alerts.add(alert);
-                //ToDo: Finishing this method
+                parent.alertListModel.addElement(alert);
+                StringBuilder alertMessage = new StringBuilder("Alarm triggered at local server:" + alert.server_name);
+
+                for(int i = 0; i < alert.alert_readings.length; i++)
+                {
+                    alertMessage.append(alert.alert_readings[i].station_name).append(" - Reading Level: ").append(alert.alert_readings[i].reading_level).append(" - Time: ").append(alert.alert_readings[i].time).append("/").append(alert.alert_readings[i].date);
+                }
+
+                //Contact the agencies
+                ArrayList<Agency> localAgencies = agencies.stream().filter(
+                        a->a.agency_region.equals(alert.server_name)).collect(Collectors.toCollection(ArrayList::new));
+
+                if(localAgencies.size() > 0)
+                {
+                    for(Agency agency: localAgencies)
+                    {
+                        alertMessage.append(agency.agency_name).append(" is to be notified via: ").append(agency.agency_contact);
+                    }
+                }
+                JOptionPane.showMessageDialog(parent, alertMessage.toString());
             }
         });
     }
@@ -171,8 +186,6 @@ public class MonitoringCentre extends JFrame
     private JList<StationDetails> stationList;
     private JList<Reading> readingList;
     private JList<Alert> alertList;
-
-
 
     DefaultListModel<ServerDetails> serverListModel;
     DefaultListModel<StationDetails> stationListModel;
@@ -245,7 +258,7 @@ public class MonitoringCentre extends JFrame
         JScrollPane serverListScroll = new JScrollPane(serverList);
         serverListScroll.setPreferredSize((new Dimension(250, 80)));
         JLabel serverListLabel = new JLabel("Connected Servers");
-        JButton centreButton = new JButton("Get Stations for Centre");
+        JButton centreStationsBtn = new JButton("Get Stations for Centre");
 
         serverPanel.add(serverListLabel);
         serverPanel.add(serverListScroll);
@@ -309,8 +322,8 @@ public class MonitoringCentre extends JFrame
         alertPanel.add(alertLabel);
         alertPanel.add(alertListScroll);
 
-        JButton readingsButton = new JButton("Get Readings");
-        JButton connectedReadingsButton = new JButton("Readings of Connected Stations");
+        JButton centreReadingsButton = new JButton("Get Readings");
+        JButton currentConnectedReadingsButton = new JButton("Readings of Connected Stations");
 
         //Agency Panel
         agencyPanel.setLayout(new BoxLayout(alertPanel, BoxLayout.PAGE_AXIS));
@@ -337,11 +350,11 @@ public class MonitoringCentre extends JFrame
         panel.add(alertPanel);
 
         //ToDo: Name the buttons more consistently
-        panel.add(centreButton);
+        panel.add(centreStationsBtn);
         panel.add(stationReadingsButton);
         panel.add(allReadingsButton);
-        panel.add(readingsButton);
-        panel.add(connectedReadingsButton);
+        panel.add(centreReadingsButton);
+        panel.add(currentConnectedReadingsButton);
 
         panel.add(agencyPanel);
 
@@ -359,12 +372,27 @@ public class MonitoringCentre extends JFrame
 
         //ToDo: Might be worth initialising stuff at class level and making methods to do setup GUI for each panel, then one to do listeners and put GUI together
         //Button Listeners
-        centreButton.addActionListener(new ActionListener()
+        centreStationsBtn.addActionListener(new ActionListener()
         {
             @Override
             public void actionPerformed(ActionEvent actionEvent)
             {
+                stationListModel.clear();
+                StationDetails station = stationList.getSelectedValue();
+                try
+                {
+                    //Find the stations
+                    LocalServer localServerServant = LocalServerHelper.narrow(namingService.resolve_str(station.station_name));
+                    StationDetails[] stationList = localServerServant.connected_servers();
 
+                    for(StationDetails stationDetails : stationList)
+                    {
+                        stationListModel.addElement(stationDetails);
+                    }
+                } catch(Exception e)
+                {
+                    e.printStackTrace();
+                }
             }
         });
 
@@ -373,7 +401,21 @@ public class MonitoringCentre extends JFrame
             @Override
             public void actionPerformed(ActionEvent actionEvent)
             {
+                readingListModel.clear();
+                StationDetails station = stationList.getSelectedValue();
+                try
+                {
+                    LocalServer localServerServant = LocalServerHelper.narrow(namingService.resolve_str(station.station_name));
+                    Reading[] stationReadings = localServerServant.all_readings();
 
+                    for(Reading stationReading : stationReadings)
+                    {
+                        readingListModel.addElement(stationReading);
+                    }
+                } catch(Exception e)
+                {
+                    e.printStackTrace();
+                }
             }
         });
 
@@ -382,25 +424,61 @@ public class MonitoringCentre extends JFrame
             @Override
             public void actionPerformed(ActionEvent actionEvent)
             {
-
+                readingListModel.clear();
+                try
+                {
+                    LocalServer localServerServant = LocalServerHelper.narrow(namingService.resolve_str(stationList.getSelectedValue().station_name));
+                    Reading[] stationReadings = localServerServant.get_readings(stationList.getSelectedValue().station_name);
+                    for(Reading stationReading : stationReadings)
+                    {
+                        readingListModel.addElement(stationReading);
+                    }
+                } catch(Exception e)
+                {
+                    e.printStackTrace();
+                }
             }
         });
 
-        readingsButton.addActionListener(new ActionListener()
+        allReadingsButton.addActionListener(new ActionListener()
         {
             @Override
             public void actionPerformed(ActionEvent actionEvent)
             {
-
+                readingListModel.clear();
+                Reading[] readings = servant.all_readings();
+                for(Reading reading : readings)
+                {
+                    readingListModel.addElement(reading);
+                }
             }
         });
 
-        connectedReadingsButton.addActionListener(new ActionListener()
+        currentConnectedReadingsButton.addActionListener(new ActionListener()
         {
             @Override
             public void actionPerformed(ActionEvent actionEvent)
             {
+                readingListModel.clear();
+                try
+                {
+                    LocalServer localServerServant = LocalServerHelper.narrow(namingService.resolve_str(serverList.getSelectedValue().server_name));
+                    StationDetails[] stations = localServerServant.connected_servers();
+                    ArrayList<Reading> pollReadings = new ArrayList<>();
 
+                    for(StationDetails stationDetails : stations)
+                    {
+                        MonitoringStation station = MonitoringStationHelper.narrow(namingService.resolve_str(stationDetails.station_name));
+                        pollReadings.add(station.reading());
+                    }
+                    for(Reading reading: pollReadings)
+                    {
+                        readingListModel.addElement(reading);
+                    }
+                } catch(Exception e)
+                {
+                    e.printStackTrace();
+                }
             }
         });
 
@@ -409,12 +487,28 @@ public class MonitoringCentre extends JFrame
             @Override
             public void actionPerformed(ActionEvent actionEvent)
             {
+                String name = agencyName.getText();
+                String location = agencyLocation.getText();
+                String contact = agencyContact.getText();
 
+                if(name.isEmpty() || location.isEmpty() || contact.isEmpty())
+                    return;
+
+                Agency agency = new Agency(name, location, contact);
+                servant.register_agency(agency);
+                agencyName.setText("");
+                agencyLocation.setText("");
+                agencyContact.setText("");
             }
         });
     }
 
-    public static void main(String args[])
+    public void addToServerList(ServerDetails serverDetails)
+    {
+        serverListModel.addElement(serverDetails);
+    }
+
+    public static void main(String[] args)
     {
         final String[] arguments = args;
         java.awt.EventQueue.invokeLater(new Runnable()
@@ -422,7 +516,7 @@ public class MonitoringCentre extends JFrame
             @Override
             public void run()
             {
-                new MonitoringStation(arguments).setVisible(true);
+                new MonitoringCentre(arguments).setVisible(true);
             }
         });
     }

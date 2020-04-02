@@ -1,6 +1,7 @@
 import AssignmentTwo.*;
+import AssignmentTwo.MonitoringCentre;
 import AssignmentTwo.MonitoringStation;
-import com.sun.media.sound.AlawCodec;
+import com.sun.security.ntlm.Server;
 import org.omg.CORBA.ORB;
 import org.omg.CosNaming.NameComponent;
 import org.omg.CosNaming.NamingContextExt;
@@ -25,10 +26,10 @@ import java.util.stream.Collectors;
 
 class LocalServerServant extends LocalServerPOA
 {
-    //ArrayLists to hold our stations, readings and alarms
+    //ArrayLists to hold our stations, readings and alerts
     private ArrayList<StationDetails> connectedStations;
     private ArrayList<Reading> readings;
-    private ArrayList<Reading> alarms;
+    private ArrayList<Reading> alerts;
 
     //Args
     private ServerDetails serverDetails;
@@ -43,13 +44,13 @@ class LocalServerServant extends LocalServerPOA
         this.parent = parent;
         connectedStations = new ArrayList<>();
         readings = new ArrayList<>();
-        alarms = new ArrayList<>();
+        alerts = new ArrayList<>();
 
         try
         {
             orb = orbValue;
 
-            org.omg.CORBA.Object namingServiceObj = orb.resolve_initial_references("NameService");
+            org.omg.CORBA.Object namingServiceObj = orb.resolve_initial_references("namingService");
             if(namingServiceObj == null)
                 return;
 
@@ -74,7 +75,7 @@ class LocalServerServant extends LocalServerPOA
     }
 
     @Override
-    public void set_info(ServerDetails info)
+    public void set_info(ServerDetails serverDetails)
     {
         this.serverDetails = serverDetails;
     }
@@ -128,11 +129,11 @@ class LocalServerServant extends LocalServerPOA
     public Reading[] get_current_readings()
     {
         ArrayList<Reading> readings = new ArrayList<>();
-        for(ServerDetails s: connectedStations())
+        for(StationDetails s: connectedStations)
         {
             try
             {
-                MonitoringStation monitoringStation = MonitoringStationHelper.narrow(namingService.resolve_str(s.server_name));
+                MonitoringStation monitoringStation = MonitoringStationHelper.narrow(namingService.resolve_str(s.station_name));
                 readings.add(monitoringStation.reading());
             } catch(NotFound | CannotProceed | InvalidName e)
             {
@@ -146,7 +147,7 @@ class LocalServerServant extends LocalServerPOA
     @Override
     public Reading[] alerts()
     {
-        return alarms.toArray(new Reading[0]);
+        return alerts.toArray(new Reading[0]);
     }
 
     @Override
@@ -159,22 +160,22 @@ class LocalServerServant extends LocalServerPOA
     @Override
     public void send_alert(Reading reading)
     {
-        ArrayList<Reading> alerts = alarms.stream().filter(
+        ArrayList<Reading> alertsSend = alerts.stream().filter(
                 r->!r.station_name.equals(reading.station_name)
                 && r.date == reading.date
                 && (r.time + timePeriod >= reading.time || r.time == reading.time))
                 .collect(Collectors.toCollection(ArrayList::new));
 
-        if(!readingReader(alarms, reading))
+        if(!readingReader(alerts, reading))
         {
-            alarms.add(reading);
             alerts.add(reading);
+            alertsSend.add(reading);
         }
 
-        if(alerts.size() > 1)
+        if(alertsSend.size() > 1)
         {
-            Alert alert = new Alert(this.get_centre_info().server_name, alerts.toArray(new Reading[0]));
-            //parent.monitoringCentre.send_alert(alert);
+            Alert alert = new Alert(this.get_centre_info().server_name, alertsSend.toArray(new Reading[0]));
+            parent.centreServant.send_alert(alert);
         }
     }
 
@@ -201,7 +202,7 @@ public class LocalServer
     private String location;
     private String monitoringCentre;
     private LocalServerServant servant;
-    MonitoringCentre monitoringServant;
+    MonitoringCentre centreServant;
 
     public LocalServer(String[] args)
     {
@@ -238,13 +239,22 @@ public class LocalServer
             NameComponent[] nsName = nameService.to_name(name);
             nameService.rebind(nsName, narrowRef);
 
-            //monitoringServant = MonitoringCentreHelper.narrow(nameService.resolve_str(monitoringCentre));
-            //monitoringServant.register_local_server(newLocalServer);
+            centreServant = MonitoringCentreHelper.narrow(nameService.resolve_str(monitoringCentre));
+            ServerDetails newServer = new ServerDetails(name, location);
+            servant.set_info(newServer);
+            centreServant.register_local_server(newServer);
 
+            //ToDo: Remove this if I make another GUI
+            orb.run();
         } catch(Exception e)
         {
             System.err.println("Error: " + e);
             e.printStackTrace(System.out);
         }
+    }
+
+    public static void main(String[] args)
+    {
+        new LocalServer(args);
     }
 }
