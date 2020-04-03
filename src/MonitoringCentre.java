@@ -16,6 +16,7 @@ import java.awt.event.ActionListener;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.Properties;
 import java.util.stream.Collectors;
 
 
@@ -199,8 +200,16 @@ public class MonitoringCentre extends JFrame
         name = args[0];
         try
         {
+            if (name == null)
+            {
+                System.out.println("No MonitoringCentre name");
+                return;
+            }
+
             //Create and initialize the ORB
-            ORB orb = ORB.init(args, null);
+            Properties properties = new Properties();
+            properties.put("org.omg.CORBA.ORBInitialPort", "1050");
+            ORB orb = ORB.init(args, properties);
 
             //Get reference to rootpoa & activate the POAManager
             POA rootpoa = POAHelper.narrow(orb.resolve_initial_references("RootPOA"));
@@ -215,7 +224,7 @@ public class MonitoringCentre extends JFrame
 
             //Naming service setup
             org.omg.CORBA.Object namingServiceObj = orb.resolve_initial_references("NameService");
-            if(namingServiceObj == null)
+            if (namingServiceObj == null)
                 return;
 
             org.omg.CosNaming.NamingContextExt nameService = NamingContextExtHelper.narrow(namingServiceObj);
@@ -233,6 +242,7 @@ public class MonitoringCentre extends JFrame
             e.printStackTrace();
         }
     }
+
 
     //ToDo: Check use of ServerListModel and finish addToCentreList function. Change name of it too
     public void setupGUI()
@@ -584,14 +594,7 @@ public class MonitoringCentre extends JFrame
     public static void main(String[] args)
     {
         final String[] arguments = args;
-        java.awt.EventQueue.invokeLater(new Runnable()
-        {
-            @Override
-            public void run()
-            {
-                new MonitoringCentre(arguments).setVisible(true);
-            }
-        });
+        java.awt.EventQueue.invokeLater(() -> new MonitoringCentre(arguments).setVisible(true));
     }
 
 }

@@ -17,10 +17,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
 import java.lang.reflect.Array;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Iterator;
+import java.util.*;
 import java.util.stream.Collectors;
 
 
@@ -49,8 +46,7 @@ class LocalServerServant extends LocalServerPOA
         try
         {
             orb = orbValue;
-
-            org.omg.CORBA.Object namingServiceObj = orb.resolve_initial_references("namingService");
+            org.omg.CORBA.Object namingServiceObj = orb.resolve_initial_references("NameService");
             if(namingServiceObj == null)
                 return;
 
@@ -154,6 +150,7 @@ class LocalServerServant extends LocalServerPOA
     public void register_monitoring_station(StationDetails info)
     {
         connectedStations.add(info);
+        System.out.println("New Station: " + info.station_name);
     }
 
     //ToDo: Look for a new way to do this stuff and fix monitoringCentre not being known. It might be monitoringStation it wants even
@@ -206,7 +203,7 @@ public class LocalServer
 
     public LocalServer(String[] args)
     {
-        if(args.length >= 3)
+        if(args.length <= 3)
         {
             name = args[0];
             location = args[1];
@@ -215,7 +212,9 @@ public class LocalServer
         try
         {
             //Create and initialize the ORB
-            ORB orb = ORB.init(args, null);
+            Properties properties = new Properties();
+            properties.put("org.omg.CORBA.ORBInitialPort", "1050");
+            ORB orb = ORB.init(args, properties);
 
             //Get reference to rootpoa & activate the POAManager
             POA rootpoa = POAHelper.narrow(orb.resolve_initial_references("RootPOA"));
@@ -231,7 +230,10 @@ public class LocalServer
             //Naming service setup
             org.omg.CORBA.Object namingServiceObj = orb.resolve_initial_references("NameService");
             if(namingServiceObj == null)
+            {
+                System.out.println("NamingServiceObj null");
                 return;
+            }
 
             org.omg.CosNaming.NamingContextExt nameService = NamingContextExtHelper.narrow(namingServiceObj);
 
@@ -243,6 +245,7 @@ public class LocalServer
             ServerDetails newServer = new ServerDetails(name, location);
             servant.set_info(newServer);
             centreServant.register_local_server(newServer);
+            System.out.println("LocalServer Online: " + name);
 
             //ToDo: Remove this if I make another GUI
             orb.run();

@@ -76,7 +76,6 @@ public class _MonitoringCentreStub extends org.omg.CORBA.portable.ObjectImpl imp
                 org.omg.CORBA.portable.OutputStream $out = _request ("register_local_server", true);
                 AssignmentTwo.ServerDetailsHelper.write ($out, info);
                 $in = _invoke ($out);
-                return;
             } catch (org.omg.CORBA.portable.ApplicationException $ex) {
                 $in = $ex.getInputStream ();
                 String _id = $ex.getId ();

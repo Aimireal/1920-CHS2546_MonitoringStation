@@ -11,6 +11,7 @@ import java.awt.event.ActionListener;
 
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Properties;
 
 class MonitoringStationServant extends MonitoringStationPOA
 {
@@ -126,13 +127,11 @@ public class MonitoringStation extends JFrame
     public MonitoringStation(String[] args)
     {
         //Check input and start servant
-        if(args.length >= 3)
+        if(args.length > 3)
         {
-            //Populate args
-            name = "Test";
-            location = "Testshire";
-            localServer = "Testford";
-
+            System.out.println("You have too many arguments");
+            return;
+        }
             name = args[0];
             location = args[1];
             localServer = args[2];
@@ -145,17 +144,13 @@ public class MonitoringStation extends JFrame
                 try
                 {
                     //Create and initialize the ORB
-                    ORB orb = ORB.init(args, null);
+                    Properties properties = new Properties();
+                    properties.put("org.omg.CORBA.ORBInitialPort", "1050");
+                    ORB orb = ORB.init(args, properties);
 
                     //Get reference to rootpoa & activate the POAManager
                     POA rootpoa = POAHelper.narrow(orb.resolve_initial_references("RootPOA"));
                     rootpoa.the_POAManager().activate();
-
-                    //Get the 'stringified IOR' and bind to naming service
-                    org.omg.CORBA.Object ref = rootpoa.servant_to_reference(servant);
-                    AssignmentTwo.MonitoringStation narrowRef = MonitoringStationHelper.narrow(ref);
-                    StationDetails newStationDetails = new StationDetails(name, location);
-                    servant.set_info(newStationDetails);
 
                     //Naming service setup
                     org.omg.CORBA.Object namingServiceObj = orb.resolve_initial_references("NameService");
@@ -163,6 +158,14 @@ public class MonitoringStation extends JFrame
                         return;
 
                     org.omg.CosNaming.NamingContextExt nameService = NamingContextExtHelper.narrow(namingServiceObj);
+
+                    servant = new MonitoringStationServant(this);
+
+                    //Get the 'stringified IOR' and bind to naming service
+                    org.omg.CORBA.Object ref = rootpoa.servant_to_reference(servant);
+                    AssignmentTwo.MonitoringStation narrowRef = MonitoringStationHelper.narrow(ref);
+                    StationDetails newStationDetails = new StationDetails(name, location);
+                    servant.set_info(newStationDetails);
 
                     //Bind our object in the naming service against the object it is part of
                     NameComponent[] nsName = nameService.to_name(name);
@@ -179,10 +182,6 @@ public class MonitoringStation extends JFrame
                     System.err.println("Error: " + e);
                     e.printStackTrace(System.out);
                 }
-            }
-        } else
-        {
-            System.out.println("You need to specify all details");
         }
     }
 
