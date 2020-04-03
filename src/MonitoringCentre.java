@@ -1,7 +1,6 @@
 import AssignmentTwo.*;
 import AssignmentTwo.LocalServer;
 import AssignmentTwo.MonitoringStation;
-import com.sun.security.ntlm.Server;
 import org.omg.CORBA.ORB;
 import org.omg.CosNaming.NameComponent;
 import org.omg.CosNaming.NamingContextExt;
@@ -46,7 +45,10 @@ class MonitoringCentreServant extends MonitoringCentrePOA
             orb = orbValue;
             org.omg.CORBA.Object namingServiceObj = orb.resolve_initial_references("NameService");
             if(namingServiceObj == null)
+            {
+                System.out.println("Naming Service not registered");
                 return;
+            }
 
             namingService = NamingContextExtHelper.narrow(namingServiceObj);
         } catch(Exception e)
@@ -251,10 +253,10 @@ public class MonitoringCentre extends JFrame
         serverList = new JList<>();
         serverList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         serverList.setVisibleRowCount(-1);
-        /*
-        ToDo: ServerListCellRenderer Class
+
+        ServerListCellRenderer serverRenderer = new ServerListCellRenderer();
         serverList.setCellRenderer(serverRenderer);
-         */
+
         JScrollPane serverListScroll = new JScrollPane(serverList);
         serverListScroll.setPreferredSize((new Dimension(250, 80)));
         JLabel serverListLabel = new JLabel("Connected Servers");
@@ -271,10 +273,10 @@ public class MonitoringCentre extends JFrame
         stationList = new JList<>();
         stationList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         stationList.setVisibleRowCount(-1);
-        /*
-        ToDo: StationListCellRenderer Class
+
+        StationListCellRenderer stationRenderer = new StationListCellRenderer();
         stationList.setCellRenderer(stationRenderer);
-         */
+
         JScrollPane stationListScroll = new JScrollPane(stationList);
         stationListScroll.setPreferredSize((new Dimension(250, 80)));
         JLabel stationListLabel = new JLabel("Active Stations");
@@ -292,10 +294,10 @@ public class MonitoringCentre extends JFrame
         readingList = new JList<>();
         readingList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         readingList.setVisibleRowCount(-1);
-        /*
-        ToDo: ReadingListCellRenderer Class
+
+        ReadingListCellRenderer readingRenderer = new ReadingListCellRenderer();
         readingList.setCellRenderer(readingRenderer);
-         */
+
         JScrollPane readingListScroll = new JScrollPane(readingList);
         readingListScroll.setPreferredSize((new Dimension(250, 80)));
         JLabel readingLabel = new JLabel("Readings");
@@ -311,10 +313,10 @@ public class MonitoringCentre extends JFrame
         alertList = new JList<>();
         alertList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         alertList.setVisibleRowCount(-1);
-        /*
-        ToDo: ReadingListCellRenderer Class
-        readingList.setCellRenderer(readingRenderer);
-         */
+
+        AlertListCellRenderer alertRenderer = new AlertListCellRenderer();
+        readingList.setCellRenderer(alertRenderer);
+
         JScrollPane alertListScroll = new JScrollPane(alertList);
         alertListScroll.setPreferredSize((new Dimension(250, 80)));
         JLabel alertLabel = new JLabel("Alerts");
@@ -325,6 +327,7 @@ public class MonitoringCentre extends JFrame
         JButton centreReadingsButton = new JButton("Get Readings");
         JButton currentConnectedReadingsButton = new JButton("Readings of Connected Stations");
 
+        /*
         //Agency Panel
         agencyPanel.setLayout(new BoxLayout(alertPanel, BoxLayout.PAGE_AXIS));
         JLabel agencyLabel = new JLabel("Agency Name");
@@ -342,6 +345,7 @@ public class MonitoringCentre extends JFrame
         agencyPanel.add(agencyContact);
         agencyPanel.add(contactField);
         agencyPanel.add(registerButton);
+         */
 
         //Build Panel
         panel.add(serverPanel);
@@ -482,6 +486,7 @@ public class MonitoringCentre extends JFrame
             }
         });
 
+        /*
         registerButton.addActionListener(new ActionListener()
         {
             @Override
@@ -501,11 +506,79 @@ public class MonitoringCentre extends JFrame
                 agencyContact.setText("");
             }
         });
+         */
     }
 
     public void addToServerList(ServerDetails serverDetails)
     {
         serverListModel.addElement(serverDetails);
+    }
+
+    //Renderer classes to format our lists
+    static class ServerListCellRenderer extends DefaultListCellRenderer
+    {
+        @Override
+        public Component getListCellRendererComponent(JList<?> jList, Object value, int index, boolean isSelected, boolean cellHasFocus)
+        {
+            super.getListCellRendererComponent(jList, value, index, isSelected, cellHasFocus);
+            if(value instanceof ServerDetails)
+            {
+                ServerDetails server = (ServerDetails)value;
+                setText(server.server_name);
+            }
+            return this;
+        }
+    }
+
+    static class StationListCellRenderer extends DefaultListCellRenderer
+    {
+        @Override
+        public Component getListCellRendererComponent(JList<?> jList, Object value, int index, boolean isSelected, boolean cellHasFocus)
+        {
+            super.getListCellRendererComponent(jList, value, index, isSelected, cellHasFocus);
+            if(value instanceof StationDetails)
+            {
+                StationDetails station = (StationDetails)value;
+                setText(station.station_name);
+            }
+            return this;
+        }
+    }
+
+    static class ReadingListCellRenderer extends DefaultListCellRenderer
+    {
+        @Override
+        public Component getListCellRendererComponent(JList<?> jList, Object value, int index, boolean isSelected, boolean cellHasFocus)
+        {
+            super.getListCellRendererComponent(jList, value, index, isSelected, cellHasFocus);
+            if(value instanceof Reading)
+            {
+                Reading reading = (Reading)value;
+                setText(reading.station_name + " - " + reading.reading_level + " - " + reading.time + " - " + reading.date);
+            }
+            return this;
+        }
+    }
+
+    static class AlertListCellRenderer extends DefaultListCellRenderer
+    {
+        @Override
+        public Component getListCellRendererComponent(JList<?> jList, Object value, int index, boolean isSelected, boolean cellHasFocus)
+        {
+            super.getListCellRendererComponent(jList, value, index, isSelected, cellHasFocus);
+            if(value instanceof Alert)
+            {
+                Alert alert = (Alert) value;
+
+                StringBuilder alertMessage = new StringBuilder(alert.server_name + " at station(s): ");
+                for(int i = 0; i < alert.alert_readings.length; i++)
+                {
+                    alertMessage.append(alert.alert_readings[i].station_name).append(", ");
+                }
+                setText(alertMessage.toString());
+            }
+            return this;
+        }
     }
 
     public static void main(String[] args)

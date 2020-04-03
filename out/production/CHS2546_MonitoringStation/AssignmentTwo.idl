@@ -1,0 +1,58 @@
+module AssignmentTwo {
+    struct Reading {
+        long time;
+        long date;
+        string station_name;
+        long reading_level;
+    };
+    struct StationDetails {
+         string station_name;
+         string location;
+    };
+    struct ServerDetails {
+         string server_name;
+         string location;
+    };
+    typedef sequence<Reading> readingList;
+    typedef sequence<StationDetails> stationList;
+    typedef sequence<ServerDetails> serverList;
+    struct Alert {
+        string server_name;
+        readingList alert_readings;
+    };
+    struct Agency {
+            string agency_name;
+            string agency_region;
+            string agency_contact;
+        };
+    interface MonitoringStation {
+        Reading reading();
+        readonly attribute readingList reading_log;
+        void take_reading();
+        void set_info(in StationDetails info);
+        StationDetails get_info();
+        void activate();
+        void deactivate();
+        void reset();
+    };
+    interface LocalServer {
+        readonly attribute stationList connected_servers;
+        ServerDetails get_centre_info();
+        void set_info(in ServerDetails info);
+        readingList all_readings();
+        readingList get_readings(in string station_name);
+        readingList get_current_readings();
+        readingList alerts();
+        void register_monitoring_station(in StationDetails info);
+        void send_alert(in Reading reading);
+    };
+    interface MonitoringCentre {
+        readingList all_readings();
+        readingList get_readings(in string server_name);
+        readonly attribute serverList connected_servers;
+        void register_local_server(in ServerDetails info);
+        void unregister_local_server(in ServerDetails info);
+        void send_alert(in Alert alert);
+        void register_agency(in Agency agency);
+    };
+};

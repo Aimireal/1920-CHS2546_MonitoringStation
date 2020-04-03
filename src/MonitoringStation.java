@@ -129,6 +129,10 @@ public class MonitoringStation extends JFrame
         if(args.length >= 3)
         {
             //Populate args
+            name = "Test";
+            location = "Testshire";
+            localServer = "Testford";
+
             name = args[0];
             location = args[1];
             localServer = args[2];
@@ -136,44 +140,45 @@ public class MonitoringStation extends JFrame
             if(name == null || location == null || localServer == null)
             {
                 System.out.println("Ensure values entered correctly");
-                return;
-            }
-            try
+            } else
             {
-                //Create and initialize the ORB
-                ORB orb = ORB.init(args, null);
+                try
+                {
+                    //Create and initialize the ORB
+                    ORB orb = ORB.init(args, null);
 
-                //Get reference to rootpoa & activate the POAManager
-                POA rootpoa = POAHelper.narrow(orb.resolve_initial_references("RootPOA"));
-                rootpoa.the_POAManager().activate();
+                    //Get reference to rootpoa & activate the POAManager
+                    POA rootpoa = POAHelper.narrow(orb.resolve_initial_references("RootPOA"));
+                    rootpoa.the_POAManager().activate();
 
-                //Get the 'stringified IOR' and bind to naming service
-                org.omg.CORBA.Object ref = rootpoa.servant_to_reference(servant);
-                AssignmentTwo.MonitoringStation narrowRef = MonitoringStationHelper.narrow(ref);
-                StationDetails newStationDetails = new StationDetails(name, location);
-                servant.set_info(newStationDetails);
+                    //Get the 'stringified IOR' and bind to naming service
+                    org.omg.CORBA.Object ref = rootpoa.servant_to_reference(servant);
+                    AssignmentTwo.MonitoringStation narrowRef = MonitoringStationHelper.narrow(ref);
+                    StationDetails newStationDetails = new StationDetails(name, location);
+                    servant.set_info(newStationDetails);
 
-                //Naming service setup
-                org.omg.CORBA.Object namingServiceObj = orb.resolve_initial_references("NameService");
-                if(namingServiceObj == null)
-                    return;
+                    //Naming service setup
+                    org.omg.CORBA.Object namingServiceObj = orb.resolve_initial_references("NameService");
+                    if(namingServiceObj == null)
+                        return;
 
-                org.omg.CosNaming.NamingContextExt nameService = NamingContextExtHelper.narrow(namingServiceObj);
+                    org.omg.CosNaming.NamingContextExt nameService = NamingContextExtHelper.narrow(namingServiceObj);
 
-                //Bind our object in the naming service against the object it is part of
-                NameComponent[] nsName = nameService.to_name(name);
-                nameService.rebind(nsName, narrowRef);
+                    //Bind our object in the naming service against the object it is part of
+                    NameComponent[] nsName = nameService.to_name(name);
+                    nameService.rebind(nsName, narrowRef);
 
-                localServant = LocalServerHelper.narrow(nameService.resolve_str(localServer));
-                localServant.register_monitoring_station(newStationDetails);
+                    localServant = LocalServerHelper.narrow(nameService.resolve_str(localServer));
+                    localServant.register_monitoring_station(newStationDetails);
 
-                //Setup GUI and button functionality
-                setupGUI();
+                    //Setup GUI and button functionality
+                    setupGUI();
 
-            } catch(Exception e)
-            {
-                System.err.println("Error: " + e);
-                e.printStackTrace(System.out);
+                } catch(Exception e)
+                {
+                    System.err.println("Error: " + e);
+                    e.printStackTrace(System.out);
+                }
             }
         } else
         {
