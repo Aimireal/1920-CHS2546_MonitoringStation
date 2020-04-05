@@ -195,12 +195,12 @@ public class MonitoringCentre extends JFrame
     private JPanel alertPanel = new JPanel();
     private JPanel agencyPanel = new JPanel();
 
-    private JButton centreStationsBtn;
-    private JButton stationReadingsButton;
-    private JButton allReadingsButton;
-    private JButton centreReadingsButton;
-    private JButton currentConnectedReadingsButton;
-    private JButton registerButton;
+    private JButton getCentreStations;
+    private JButton getCentreReadings;
+    private JButton getStationReadings;
+    private JButton getAllReadings;
+    private JButton registerAgency;
+    private JButton getCurrentConnectedReadings;
 
     private JList<ServerDetails> serverList;
     private JList<StationDetails> stationList;
@@ -291,7 +291,7 @@ public class MonitoringCentre extends JFrame
         JScrollPane serverListScroll = new JScrollPane(serverList);
         serverListScroll.setPreferredSize((new Dimension(250, 80)));
         JLabel serverListLabel = new JLabel("Connected Servers");
-        centreStationsBtn = new JButton("Get Stations for Centre");
+        getCentreStations = new JButton("Stations at Centre");
 
         serverPanel.add(serverListLabel);
         serverPanel.add(serverListScroll);
@@ -310,9 +310,9 @@ public class MonitoringCentre extends JFrame
 
         JScrollPane stationListScroll = new JScrollPane(stationList);
         stationListScroll.setPreferredSize((new Dimension(250, 80)));
-        JLabel stationListLabel = new JLabel("Centres Monitoring Stations");
-        stationReadingsButton = new JButton("Station Readings");
-        allReadingsButton = new JButton("All Readings");
+        JLabel stationListLabel = new JLabel("Centres for Server");
+        getStationReadings = new JButton("Station Readings");
+        getAllReadings = new JButton("All Readings");
 
         serverPanel.add(stationListScroll);
         serverPanel.add(stationListLabel);
@@ -355,8 +355,8 @@ public class MonitoringCentre extends JFrame
         alertPanel.add(alertLabel);
         alertPanel.add(alertListScroll);
 
-        centreReadingsButton = new JButton("Centre Readings");
-        currentConnectedReadingsButton = new JButton("Readings of Connected Stations");
+        getCentreReadings = new JButton("Server Readings");
+        getCurrentConnectedReadings = new JButton("Poll Connected Server Stations");
 
         //Build Panel
         panel.add(serverPanel);
@@ -365,11 +365,11 @@ public class MonitoringCentre extends JFrame
         panel.add(alertPanel);
 
         //ToDo: Name the buttons more consistently
-        panel.add(centreStationsBtn);
-        panel.add(stationReadingsButton);
-        panel.add(allReadingsButton);
-        panel.add(centreReadingsButton);
-        panel.add(currentConnectedReadingsButton);
+        panel.add(getCentreStations);
+        panel.add(getStationReadings);
+        panel.add(getAllReadings);
+        panel.add(getCentreReadings);
+        panel.add(getCurrentConnectedReadings);
 
 
         //Agency Panel
@@ -380,7 +380,7 @@ public class MonitoringCentre extends JFrame
         locationField = new JTextField();
         JLabel agencyContact = new JLabel("Contact Information");
         contactField = new JTextField();
-        registerButton = new JButton("Register Agency");
+        registerAgency = new JButton("Register Agency");
 
         agencyPanel.add(agencyLabel);
         agencyPanel.add(agencyName);
@@ -388,7 +388,7 @@ public class MonitoringCentre extends JFrame
         agencyPanel.add(locationField);
         agencyPanel.add(agencyContact);
         agencyPanel.add(contactField);
-        agencyPanel.add(registerButton);
+        agencyPanel.add(registerAgency);
 
 
         panel.add(agencyPanel);
@@ -409,27 +409,22 @@ public class MonitoringCentre extends JFrame
     {
         //ToDo: Might be worth initialising stuff at class level and making methods to do setup GUI for each panel, then one to do listeners and put GUI together
         //Button Listeners
-        centreStationsBtn.addActionListener(new ActionListener()
+        getCentreStations.addActionListener(new ActionListener()
         {
             @Override
             public void actionPerformed(ActionEvent actionEvent)
             {
                 stationListModel.clear();
-                StationDetails station = stationList.getSelectedValue();
-                if(station == null)
-                {
-                    System.out.println("You have not selected a station");
-                    return;
-                }
+                ServerDetails server = serverList.getSelectedValue();
                 try
                 {
-                    //Find the stations
-                    LocalServer localServerServant = LocalServerHelper.narrow(namingService.resolve_str(station.station_name));
+                    //Find the servant for the server
+                    LocalServer localServerServant = LocalServerHelper.narrow(namingService.resolve_str(server.server_name));
                     StationDetails[] stationList = localServerServant.connected_servers();
 
-                    for(StationDetails stationDetails : stationList)
+                    for(int i = 0; i < stationList.length; i++)
                     {
-                        stationListModel.addElement(stationDetails);
+                        stationListModel.addElement(stationList[i]);
                     }
                 } catch(Exception e)
                 {
@@ -438,25 +433,21 @@ public class MonitoringCentre extends JFrame
             }
         });
 
-        stationReadingsButton.addActionListener(new ActionListener()
+        getCentreReadings.addActionListener(new ActionListener()
         {
             @Override
             public void actionPerformed(ActionEvent actionEvent)
             {
                 readingListModel.clear();
-                StationDetails station = stationList.getSelectedValue();
-                if(station == null)
-                {
-                    System.out.println("You have not selected a station");
-                    return;
-                }
+                ServerDetails server = serverList.getSelectedValue();
                 try
                 {
-                    LocalServer localServerServant = LocalServerHelper.narrow(namingService.resolve_str(station.station_name));
-                    Reading[] stationReadings = localServerServant.all_readings();
-                    for(Reading stationReading : stationReadings)
+                    LocalServer localServer = LocalServerHelper.narrow(namingService.resolve_str(server.server_name));
+                    Reading[] serverReadings = localServer.all_readings();
+
+                    for(int i = 0; i < serverReadings.length; i++)
                     {
-                        readingListModel.addElement(stationReading);
+                        readingListModel.addElement(serverReadings[i]);
                     }
                 } catch(Exception e)
                 {
@@ -465,21 +456,42 @@ public class MonitoringCentre extends JFrame
             }
         });
 
-        allReadingsButton.addActionListener(new ActionListener()
+        getStationReadings.addActionListener(new ActionListener()
+        {
+            @Override
+            public void actionPerformed(ActionEvent actionEvent)
+            {
+                readingListModel.clear();
+                try
+                {
+                    LocalServer localServerServant = LocalServerHelper.narrow(namingService.resolve_str(serverList.getSelectedValue().server_name));
+                    Reading[] stationReadings = localServerServant.get_readings(stationList.getSelectedValue().station_name);
+                    for(int i = 0; i < stationReadings.length; i++)
+                    {
+                        readingListModel.addElement(stationReadings[i]);
+                    }
+                } catch(Exception e)
+                {
+                    e.printStackTrace();
+                }
+            }
+        });
+
+        getAllReadings.addActionListener(new ActionListener()
         {
             @Override
             public void actionPerformed(ActionEvent actionEvent)
             {
                 readingListModel.clear();
                 Reading[] readings = servant.all_readings();
-                for(Reading reading : readings)
+                for(int i = 0; i < readings.length; i++)
                 {
-                    readingListModel.addElement(reading);
+                    readingListModel.addElement(readings[i]);
                 }
             }
         });
 
-        currentConnectedReadingsButton.addActionListener(new ActionListener()
+        getCurrentConnectedReadings.addActionListener(new ActionListener()
         {
             @Override
             public void actionPerformed(ActionEvent actionEvent)
@@ -491,9 +503,9 @@ public class MonitoringCentre extends JFrame
                     StationDetails[] stations = localServerServant.connected_servers();
                     ArrayList<Reading> pollReadings = new ArrayList<>();
 
-                    for(StationDetails stationDetails : stations)
+                    for(int i = 0; i < stations.length; i++)
                     {
-                        MonitoringStation station = MonitoringStationHelper.narrow(namingService.resolve_str(stationDetails.station_name));
+                        MonitoringStation station = MonitoringStationHelper.narrow(namingService.resolve_str(stations[i].station_name));
                         pollReadings.add(station.reading());
                     }
                     for(Reading reading: pollReadings)
@@ -507,8 +519,7 @@ public class MonitoringCentre extends JFrame
             }
         });
 
-
-        registerButton.addActionListener(new ActionListener()
+        registerAgency.addActionListener(new ActionListener()
         {
             @Override
             public void actionPerformed(ActionEvent actionEvent)
@@ -533,6 +544,12 @@ public class MonitoringCentre extends JFrame
     public void addToServerList(ServerDetails serverDetails)
     {
         serverListModel.addElement(serverDetails);
+    }
+
+    public static void main(String[] args)
+    {
+        final String[] arguments = args;
+        java.awt.EventQueue.invokeLater(() -> new MonitoringCentre(arguments).setVisible(true));
     }
 
     //Renderer classes to format our lists
@@ -600,12 +617,6 @@ public class MonitoringCentre extends JFrame
             }
             return this;
         }
-    }
-
-    public static void main(String[] args)
-    {
-        final String[] arguments = args;
-        java.awt.EventQueue.invokeLater(() -> new MonitoringCentre(arguments).setVisible(true));
     }
 
 }
