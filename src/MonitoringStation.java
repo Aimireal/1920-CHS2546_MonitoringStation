@@ -1,4 +1,5 @@
 import AssignmentTwo.*;
+import AssignmentTwo.LocalServer;
 import org.omg.CORBA.ORB;
 import org.omg.CosNaming.NameComponent;
 import org.omg.CosNaming.NamingContextExtHelper;
@@ -117,11 +118,17 @@ public class MonitoringStation extends JFrame
     private String localServer;
 
     //Initialise GUI elements
-    private JTextArea textarea;
-    private JSlider readingSlider;
+    JPanel panel;
+    JScrollPane scrollPane;
+    JTextArea textarea;
+    JButton readingButton;
+    JButton activateButton;
+    JButton deactivateButton;
+    JButton resetButton;
+    JSlider readingSlider;
 
     MonitoringStationServant servant = new MonitoringStationServant(this);
-    AssignmentTwo.LocalServer localServant;
+    LocalServer localServant;
 
     //Servant setup
     public MonitoringStation(String[] args)
@@ -201,15 +208,19 @@ public class MonitoringStation extends JFrame
     public void setupGUI()
     {
         //Draw GUI
-        JTextArea textarea = new JTextArea(20, 25);
-        JScrollPane scrollPane = new JScrollPane(textarea);
-        JPanel panel = new JPanel();
+        textarea = new JTextArea(20, 25);
+        scrollPane = new JScrollPane(textarea);
+        panel = new JPanel();
 
-        JSlider readingSlider = new JSlider(0, 50);
-        JButton readingButton = new JButton("Get Reading");
-        JButton activateButton = new JButton("Activate");
-        JButton deactivateButton = new JButton("Deactivate");
-        JButton resetButton = new JButton("Reset");
+        readingSlider = new JSlider(0, 50);
+        readingButton = new JButton("Get Reading");
+        activateButton = new JButton("Activate");
+        deactivateButton = new JButton("Deactivate");
+        resetButton = new JButton("Reset");
+
+        readingSlider.setMajorTickSpacing(10);
+        readingSlider.setPaintTicks(true);
+        readingSlider.setPaintLabels(true);
 
         panel.add(readingSlider);
         panel.add(readingButton);
@@ -219,8 +230,8 @@ public class MonitoringStation extends JFrame
         panel.add(scrollPane);
         getContentPane().add(panel, "Center");
 
-        setSize(350, 450);
-        setTitle("Monitoring Station: ");
+        setSize(400, 450);
+        setTitle("Monitoring Station: " + servant.get_info().station_name + " - " + servant.get_info().location);
 
         textarea.append("Station activated");
 
@@ -249,6 +260,7 @@ public class MonitoringStation extends JFrame
             public void actionPerformed(ActionEvent actionEvent)
             {
                 servant.activate();
+                System.out.println("Servant Activated");
             }
         });
 
@@ -258,6 +270,7 @@ public class MonitoringStation extends JFrame
             public void actionPerformed(ActionEvent actionEvent)
             {
                 servant.deactivate();
+                System.out.println("Servant Deactivated");
             }
         });
 
@@ -267,6 +280,7 @@ public class MonitoringStation extends JFrame
             public void actionPerformed(ActionEvent actionEvent)
             {
                 servant.reset();
+                System.out.println("Servant Reset");
             }
         });
     }
@@ -281,7 +295,7 @@ public class MonitoringStation extends JFrame
         clearLog();
         for(Reading reading: servant.reading_log())
         {
-            textarea.append("Reading value: " + reading.reading_level);
+            textarea.append("Reading value: " + reading.reading_level + "\n");
         }
     }
 

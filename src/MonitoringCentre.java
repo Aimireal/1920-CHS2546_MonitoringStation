@@ -76,11 +76,13 @@ class MonitoringCentreServant extends MonitoringCentrePOA
                 //ToDo: We might only need to check Date/Time and station name. Probably can do this in line?
                 if (localReadings.size() != 0)
                 {
-                    for (Reading nextReading : localReadings)
+                    Iterator<Reading> newIterator = localReadings.iterator();
+                    while(newIterator.hasNext())
                     {
-                        if (!readingReader(readings, nextReading))
+                        Reading newReading = newIterator.next();
+                        if(!readingReader(readings, newReading))
                         {
-                            readings.add(nextReading);
+                            readings.add(newReading);
                         }
                     }
                 }
@@ -181,9 +183,24 @@ class MonitoringCentreServant extends MonitoringCentrePOA
 
 public class MonitoringCentre extends JFrame
 {
+    //Initialise GUI elements
     private String name;
     NamingContextExt namingService;
     MonitoringCentreServant servant;
+
+    private JPanel panel = new JPanel();
+    private JPanel serverPanel = new JPanel();
+    private JPanel stationPanel = new JPanel();
+    private JPanel readingPanel = new JPanel();
+    private JPanel alertPanel = new JPanel();
+    private JPanel agencyPanel = new JPanel();
+
+    private JButton centreStationsBtn;
+    private JButton stationReadingsButton;
+    private JButton allReadingsButton;
+    private JButton centreReadingsButton;
+    private JButton currentConnectedReadingsButton;
+    private JButton registerButton;
 
     private JList<ServerDetails> serverList;
     private JList<StationDetails> stationList;
@@ -194,6 +211,10 @@ public class MonitoringCentre extends JFrame
     DefaultListModel<StationDetails> stationListModel;
     DefaultListModel<Reading> readingListModel;
     DefaultListModel<Alert> alertListModel;
+
+    private JTextField agencyName;
+    private JTextField locationField;
+    private JTextField contactField;
 
     public MonitoringCentre(String[] args)
     {
@@ -227,15 +248,15 @@ public class MonitoringCentre extends JFrame
             if (namingServiceObj == null)
                 return;
 
-            org.omg.CosNaming.NamingContextExt nameService = NamingContextExtHelper.narrow(namingServiceObj);
+            namingService = NamingContextExtHelper.narrow(namingServiceObj);
 
             //Bind our monitoring station object in the naming service against our local server
-            NameComponent[] nsName = nameService.to_name(name);
-            nameService.rebind(nsName, narrowRef);
+            NameComponent[] nsName = namingService.to_name(name);
+            namingService.rebind(nsName, narrowRef);
 
             //SetupGUI and button functionality
             setupGUI();
-
+            setupButtons();
         } catch (Exception e)
         {
             System.err.println("Error: " + e);
@@ -248,19 +269,19 @@ public class MonitoringCentre extends JFrame
     public void setupGUI()
     {
         //Draw GUI
-        JPanel panel = new JPanel();
-        JPanel serverPanel = new JPanel();
-        JPanel stationPanel = new JPanel();
-        JPanel readingPanel = new JPanel();
-        JPanel alertPanel = new JPanel();
-        JPanel agencyPanel = new JPanel();
+        panel = new JPanel();
+        serverPanel = new JPanel();
+        stationPanel = new JPanel();
+        readingPanel = new JPanel();
+        alertPanel = new JPanel();
+        agencyPanel = new JPanel();
 
         //Server Panel
         serverPanel.setLayout(new BoxLayout(serverPanel, BoxLayout.PAGE_AXIS));
         serverPanel.setPreferredSize(new Dimension(250, 200));
 
         serverListModel = new DefaultListModel<>();
-        serverList = new JList<>();
+        serverList = new JList<>(serverListModel);
         serverList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         serverList.setVisibleRowCount(-1);
 
@@ -270,7 +291,7 @@ public class MonitoringCentre extends JFrame
         JScrollPane serverListScroll = new JScrollPane(serverList);
         serverListScroll.setPreferredSize((new Dimension(250, 80)));
         JLabel serverListLabel = new JLabel("Connected Servers");
-        JButton centreStationsBtn = new JButton("Get Stations for Centre");
+        centreStationsBtn = new JButton("Get Stations for Centre");
 
         serverPanel.add(serverListLabel);
         serverPanel.add(serverListScroll);
@@ -280,7 +301,7 @@ public class MonitoringCentre extends JFrame
         stationPanel.setPreferredSize(new Dimension(250, 200));
 
         stationListModel = new DefaultListModel<>();
-        stationList = new JList<>();
+        stationList = new JList<>(stationListModel);
         stationList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         stationList.setVisibleRowCount(-1);
 
@@ -289,9 +310,9 @@ public class MonitoringCentre extends JFrame
 
         JScrollPane stationListScroll = new JScrollPane(stationList);
         stationListScroll.setPreferredSize((new Dimension(250, 80)));
-        JLabel stationListLabel = new JLabel("Active Stations");
-        JButton stationReadingsButton = new JButton("Station Readings");
-        JButton allReadingsButton = new JButton("All Readings");
+        JLabel stationListLabel = new JLabel("Centres Monitoring Stations");
+        stationReadingsButton = new JButton("Station Readings");
+        allReadingsButton = new JButton("All Readings");
 
         serverPanel.add(stationListScroll);
         serverPanel.add(stationListLabel);
@@ -301,7 +322,7 @@ public class MonitoringCentre extends JFrame
         readingPanel.setPreferredSize(new Dimension(250, 200));
 
         readingListModel = new DefaultListModel<>();
-        readingList = new JList<>();
+        readingList = new JList<>(readingListModel);
         readingList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         readingList.setVisibleRowCount(-1);
 
@@ -320,7 +341,7 @@ public class MonitoringCentre extends JFrame
         alertPanel.setPreferredSize(new Dimension(250, 200));
 
         alertListModel = new DefaultListModel<>();
-        alertList = new JList<>();
+        alertList = new JList<>(alertListModel);
         alertList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         alertList.setVisibleRowCount(-1);
 
@@ -334,28 +355,8 @@ public class MonitoringCentre extends JFrame
         alertPanel.add(alertLabel);
         alertPanel.add(alertListScroll);
 
-        JButton centreReadingsButton = new JButton("Get Readings");
-        JButton currentConnectedReadingsButton = new JButton("Readings of Connected Stations");
-
-        /*
-        //Agency Panel
-        agencyPanel.setLayout(new BoxLayout(alertPanel, BoxLayout.PAGE_AXIS));
-        JLabel agencyLabel = new JLabel("Agency Name");
-        JTextField agencyName = new JTextField();
-        JLabel agencyLocation = new JLabel("Location");
-        JTextField locationField = new JTextField();
-        JLabel agencyContact = new JLabel("Contact Information");
-        JTextField contactField = new JTextField();
-        JButton registerButton = new JButton("Register Agency");
-
-        agencyPanel.add(agencyLabel);
-        agencyPanel.add(agencyName);
-        agencyPanel.add(agencyLocation);
-        agencyPanel.add(locationField);
-        agencyPanel.add(agencyContact);
-        agencyPanel.add(contactField);
-        agencyPanel.add(registerButton);
-         */
+        centreReadingsButton = new JButton("Centre Readings");
+        currentConnectedReadingsButton = new JButton("Readings of Connected Stations");
 
         //Build Panel
         panel.add(serverPanel);
@@ -370,6 +371,26 @@ public class MonitoringCentre extends JFrame
         panel.add(centreReadingsButton);
         panel.add(currentConnectedReadingsButton);
 
+
+        //Agency Panel
+        agencyPanel.setLayout(new BoxLayout(agencyPanel, BoxLayout.PAGE_AXIS));
+        JLabel agencyLabel = new JLabel("Agency Name");
+        agencyName = new JTextField();
+        JLabel agencyLocation = new JLabel("Location");
+        locationField = new JTextField();
+        JLabel agencyContact = new JLabel("Contact Information");
+        contactField = new JTextField();
+        registerButton = new JButton("Register Agency");
+
+        agencyPanel.add(agencyLabel);
+        agencyPanel.add(agencyName);
+        agencyPanel.add(agencyLocation);
+        agencyPanel.add(locationField);
+        agencyPanel.add(agencyContact);
+        agencyPanel.add(contactField);
+        agencyPanel.add(registerButton);
+
+
         panel.add(agencyPanel);
 
         getContentPane().add(panel, "Center");
@@ -382,8 +403,10 @@ public class MonitoringCentre extends JFrame
                 System.exit(0);
             }
         });
+    }
 
-
+    public void setupButtons()
+    {
         //ToDo: Might be worth initialising stuff at class level and making methods to do setup GUI for each panel, then one to do listeners and put GUI together
         //Button Listeners
         centreStationsBtn.addActionListener(new ActionListener()
@@ -393,6 +416,11 @@ public class MonitoringCentre extends JFrame
             {
                 stationListModel.clear();
                 StationDetails station = stationList.getSelectedValue();
+                if(station == null)
+                {
+                    System.out.println("You have not selected a station");
+                    return;
+                }
                 try
                 {
                     //Find the stations
@@ -417,32 +445,15 @@ public class MonitoringCentre extends JFrame
             {
                 readingListModel.clear();
                 StationDetails station = stationList.getSelectedValue();
+                if(station == null)
+                {
+                    System.out.println("You have not selected a station");
+                    return;
+                }
                 try
                 {
                     LocalServer localServerServant = LocalServerHelper.narrow(namingService.resolve_str(station.station_name));
                     Reading[] stationReadings = localServerServant.all_readings();
-
-                    for(Reading stationReading : stationReadings)
-                    {
-                        readingListModel.addElement(stationReading);
-                    }
-                } catch(Exception e)
-                {
-                    e.printStackTrace();
-                }
-            }
-        });
-
-        allReadingsButton.addActionListener(new ActionListener()
-        {
-            @Override
-            public void actionPerformed(ActionEvent actionEvent)
-            {
-                readingListModel.clear();
-                try
-                {
-                    LocalServer localServerServant = LocalServerHelper.narrow(namingService.resolve_str(stationList.getSelectedValue().station_name));
-                    Reading[] stationReadings = localServerServant.get_readings(stationList.getSelectedValue().station_name);
                     for(Reading stationReading : stationReadings)
                     {
                         readingListModel.addElement(stationReading);
@@ -496,15 +507,15 @@ public class MonitoringCentre extends JFrame
             }
         });
 
-        /*
+
         registerButton.addActionListener(new ActionListener()
         {
             @Override
             public void actionPerformed(ActionEvent actionEvent)
             {
                 String name = agencyName.getText();
-                String location = agencyLocation.getText();
-                String contact = agencyContact.getText();
+                String location = locationField.getText();
+                String contact = contactField.getText();
 
                 if(name.isEmpty() || location.isEmpty() || contact.isEmpty())
                     return;
@@ -512,11 +523,11 @@ public class MonitoringCentre extends JFrame
                 Agency agency = new Agency(name, location, contact);
                 servant.register_agency(agency);
                 agencyName.setText("");
-                agencyLocation.setText("");
-                agencyContact.setText("");
+                locationField.setText("");
+                contactField.setText("");
             }
         });
-         */
+
     }
 
     public void addToServerList(ServerDetails serverDetails)
@@ -525,7 +536,7 @@ public class MonitoringCentre extends JFrame
     }
 
     //Renderer classes to format our lists
-    static class ServerListCellRenderer extends DefaultListCellRenderer
+    class ServerListCellRenderer extends DefaultListCellRenderer
     {
         @Override
         public Component getListCellRendererComponent(JList<?> jList, Object value, int index, boolean isSelected, boolean cellHasFocus)
@@ -540,7 +551,7 @@ public class MonitoringCentre extends JFrame
         }
     }
 
-    static class StationListCellRenderer extends DefaultListCellRenderer
+    class StationListCellRenderer extends DefaultListCellRenderer
     {
         @Override
         public Component getListCellRendererComponent(JList<?> jList, Object value, int index, boolean isSelected, boolean cellHasFocus)
@@ -555,7 +566,7 @@ public class MonitoringCentre extends JFrame
         }
     }
 
-    static class ReadingListCellRenderer extends DefaultListCellRenderer
+    class ReadingListCellRenderer extends DefaultListCellRenderer
     {
         @Override
         public Component getListCellRendererComponent(JList<?> jList, Object value, int index, boolean isSelected, boolean cellHasFocus)
@@ -570,7 +581,7 @@ public class MonitoringCentre extends JFrame
         }
     }
 
-    static class AlertListCellRenderer extends DefaultListCellRenderer
+    class AlertListCellRenderer extends DefaultListCellRenderer
     {
         @Override
         public Component getListCellRendererComponent(JList<?> jList, Object value, int index, boolean isSelected, boolean cellHasFocus)

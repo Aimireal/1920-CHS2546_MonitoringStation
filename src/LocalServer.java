@@ -1,7 +1,6 @@
 import AssignmentTwo.*;
 import AssignmentTwo.MonitoringCentre;
 import AssignmentTwo.MonitoringStation;
-import com.sun.security.ntlm.Server;
 import org.omg.CORBA.ORB;
 import org.omg.CosNaming.NameComponent;
 import org.omg.CosNaming.NamingContextExt;
@@ -12,11 +11,6 @@ import org.omg.CosNaming.NamingContextPackage.NotFound;
 import org.omg.PortableServer.POA;
 import org.omg.PortableServer.POAHelper;
 
-import javax.swing.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-
-import java.lang.reflect.Array;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -33,7 +27,6 @@ class LocalServerServant extends LocalServerPOA
     private LocalServer parent;
     private ORB orb;
     private NamingContextExt namingService;
-
     private int timePeriod = 1;
 
     public LocalServerServant(ORB orbValue, LocalServer parent)
@@ -97,6 +90,10 @@ class LocalServerServant extends LocalServerPOA
                         if (!readingReader(readings, nextReading))
                         {
                             readings.add(nextReading);
+                            System.out.println("New Reading: " + nextReading.station_name + " - " +
+                                    nextReading.reading_level + " - "  +
+                                    nextReading.time + " - " +
+                                    nextReading.date);
                         }
                     }
                 }
