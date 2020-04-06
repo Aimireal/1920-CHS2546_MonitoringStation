@@ -291,7 +291,7 @@ public class MonitoringCentre extends JFrame
         JScrollPane serverListScroll = new JScrollPane(serverList);
         serverListScroll.setPreferredSize((new Dimension(250, 80)));
         JLabel serverListLabel = new JLabel("Connected Servers");
-        getCentreStations = new JButton("Stations at Centre");
+        getCentreStations = new JButton("Stations at Server");
 
         serverPanel.add(serverListLabel);
         serverPanel.add(serverListScroll);
@@ -310,12 +310,12 @@ public class MonitoringCentre extends JFrame
 
         JScrollPane stationListScroll = new JScrollPane(stationList);
         stationListScroll.setPreferredSize((new Dimension(250, 80)));
-        JLabel stationListLabel = new JLabel("Centres for Server");
+        JLabel stationListLabel = new JLabel("Stations for Server");
         getStationReadings = new JButton("Station Readings");
         getAllReadings = new JButton("All Readings");
 
-        serverPanel.add(stationListScroll);
         serverPanel.add(stationListLabel);
+        serverPanel.add(stationListScroll);
 
         //Reading Panel
         readingPanel.setLayout(new BoxLayout(readingPanel, BoxLayout.PAGE_AXIS));
@@ -346,7 +346,7 @@ public class MonitoringCentre extends JFrame
         alertList.setVisibleRowCount(-1);
 
         AlertListCellRenderer alertRenderer = new AlertListCellRenderer();
-        readingList.setCellRenderer(alertRenderer);
+        alertList.setCellRenderer(alertRenderer);
 
         JScrollPane alertListScroll = new JScrollPane(alertList);
         alertListScroll.setPreferredSize((new Dimension(250, 80)));
@@ -416,19 +416,25 @@ public class MonitoringCentre extends JFrame
             {
                 stationListModel.clear();
                 ServerDetails server = serverList.getSelectedValue();
-                try
+                if(server != null)
                 {
-                    //Find the servant for the server
-                    LocalServer localServerServant = LocalServerHelper.narrow(namingService.resolve_str(server.server_name));
-                    StationDetails[] stationList = localServerServant.connected_servers();
-
-                    for(int i = 0; i < stationList.length; i++)
+                    try
                     {
-                        stationListModel.addElement(stationList[i]);
+                        //Find the servant for the server
+                        LocalServer localServerServant = LocalServerHelper.narrow(namingService.resolve_str(server.server_name));
+                        StationDetails[] stationList = localServerServant.connected_servers();
+
+                        for(int i = 0; i < stationList.length; i++)
+                        {
+                            stationListModel.addElement(stationList[i]);
+                        }
+                    } catch(Exception e)
+                    {
+                        e.printStackTrace();
                     }
-                } catch(Exception e)
+                }else
                 {
-                    e.printStackTrace();
+                    System.out.println("Server not provided");
                 }
             }
         });
@@ -466,9 +472,15 @@ public class MonitoringCentre extends JFrame
                 {
                     LocalServer localServerServant = LocalServerHelper.narrow(namingService.resolve_str(serverList.getSelectedValue().server_name));
                     Reading[] stationReadings = localServerServant.get_readings(stationList.getSelectedValue().station_name);
-                    for(int i = 0; i < stationReadings.length; i++)
+                    if(stationReadings != null)
                     {
-                        readingListModel.addElement(stationReadings[i]);
+                        for(int i = 0; i < stationReadings.length; i++)
+                        {
+                            readingListModel.addElement(stationReadings[i]);
+                        }
+                    } else
+                    {
+                        System.out.println("StationReadings failed. No station found");
                     }
                 } catch(Exception e)
                 {
@@ -577,7 +589,7 @@ public class MonitoringCentre extends JFrame
             if(value instanceof StationDetails)
             {
                 StationDetails station = (StationDetails)value;
-                setText(station.station_name);
+                setText(station.station_name + " - " + station.location);
             }
             return this;
         }
@@ -591,8 +603,8 @@ public class MonitoringCentre extends JFrame
             super.getListCellRendererComponent(jList, value, index, isSelected, cellHasFocus);
             if(value instanceof Reading)
             {
-                Reading reading = (Reading)value;
-                setText(reading.station_name + " - " + reading.reading_level + " - " + reading.time + " - " + reading.date);
+                Reading readings = (Reading)value;
+                setText(readings.station_name + " - " + readings.reading_level + " - " + readings.time + "/" + readings.date);
             }
             return this;
         }
@@ -608,12 +620,12 @@ public class MonitoringCentre extends JFrame
             {
                 Alert alert = (Alert) value;
 
-                StringBuilder alertMessage = new StringBuilder(alert.server_name + " at station(s): ");
+                String alertMessage = alert.server_name + " at station(s): ";
                 for(int i = 0; i < alert.alert_readings.length; i++)
                 {
-                    alertMessage.append(alert.alert_readings[i].station_name).append(", ");
+                    alertMessage += alert.alert_readings[i].station_name + (", ");
                 }
-                setText(alertMessage.toString());
+                setText(alertMessage);
             }
             return this;
         }

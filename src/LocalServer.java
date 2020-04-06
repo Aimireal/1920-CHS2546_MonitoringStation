@@ -85,15 +85,11 @@ class LocalServerServant extends LocalServerPOA
                 //ToDo: We might only need to check Date/Time and station name. Probably can do this in line?
                 if(allReadings.size() != 0)
                 {
-                    for (Reading nextReading : allReadings)
+                    for (Reading pulledReading : allReadings)
                     {
-                        if (!readingReader(readings, nextReading))
+                        if (!readingReader(readings, pulledReading))
                         {
-                            readings.add(nextReading);
-                            System.out.println("New Reading: " + nextReading.station_name + " - " +
-                                    nextReading.reading_level + " - "  +
-                                    nextReading.time + " - " +
-                                    nextReading.date);
+                            readings.add(pulledReading);
                         }
                     }
                 }
