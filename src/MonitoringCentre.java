@@ -13,10 +13,11 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.Properties;
+import java.time.Duration;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.Year;
+import java.util.*;
 import java.util.stream.Collectors;
 
 
@@ -545,6 +546,10 @@ public class MonitoringCentre extends JFrame
 
                 Agency agency = new Agency(name, location, contact);
                 servant.register_agency(agency);
+
+                JOptionPane.showMessageDialog(panel, "Agency " + name +
+                        " saved. \n They will be notified in the event of critical readings");
+
                 agencyName.setText("");
                 locationField.setText("");
                 contactField.setText("");
@@ -603,8 +608,17 @@ public class MonitoringCentre extends JFrame
             super.getListCellRendererComponent(jList, value, index, isSelected, cellHasFocus);
             if(value instanceof Reading)
             {
+                //Create a nicely formatted date and time then create text for the list
                 Reading readings = (Reading)value;
-                setText(readings.station_name + " - " + readings.reading_level + " - " + readings.time + "/" + readings.date);
+
+                int yearInt = Year.now().getValue();
+                Year year = Year.of(yearInt);
+                LocalDate ld = year.atDay(readings.date);
+
+                LocalTime formattedTime = LocalTime.MIN.plus(Duration.ofMinutes(readings.time));
+
+                setText(readings.station_name + " - Level:" + readings.reading_level + " - "
+                        + formattedTime.toString() + "/" + ld);
             }
             return this;
         }
@@ -620,12 +634,12 @@ public class MonitoringCentre extends JFrame
             {
                 Alert alert = (Alert) value;
 
-                String alertMessage = alert.server_name + " at station(s): ";
+                StringBuilder alertMessage = new StringBuilder(alert.server_name + " at station(s): ");
                 for(int i = 0; i < alert.alert_readings.length; i++)
                 {
-                    alertMessage += alert.alert_readings[i].station_name + (", ");
+                    alertMessage.append(alert.alert_readings[i].station_name).append(", ");
                 }
-                setText(alertMessage);
+                setText(alertMessage.toString());
             }
             return this;
         }

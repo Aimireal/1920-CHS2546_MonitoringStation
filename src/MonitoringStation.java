@@ -33,6 +33,7 @@ class MonitoringStationServant extends MonitoringStationPOA
     @Override
     public Reading reading()
     {
+        //ToDo: Time format
         //Get Reading
         int readingValue = parent.getReadingValue();
         String stationName = get_info().station_name;
