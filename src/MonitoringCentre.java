@@ -196,8 +196,8 @@ public class MonitoringCentre extends JFrame
     private JPanel alertPanel = new JPanel();
     private JPanel agencyPanel = new JPanel();
 
-    private JButton getCentreStations;
-    private JButton getCentreReadings;
+    private JButton getServerStations;
+    private JButton getServerReadings;
     private JButton getStationReadings;
     private JButton getAllReadings;
     private JButton registerAgency;
@@ -292,10 +292,11 @@ public class MonitoringCentre extends JFrame
         JScrollPane serverListScroll = new JScrollPane(serverList);
         serverListScroll.setPreferredSize((new Dimension(250, 80)));
         JLabel serverListLabel = new JLabel("Connected Servers");
-        getCentreStations = new JButton("Stations at Server");
+        getServerStations = new JButton("Stations at Server");
 
         serverPanel.add(serverListLabel);
         serverPanel.add(serverListScroll);
+        serverPanel.add(getServerStations);
 
         //Station Panel
         stationPanel.setLayout(new BoxLayout(stationPanel, BoxLayout.PAGE_AXIS));
@@ -315,8 +316,9 @@ public class MonitoringCentre extends JFrame
         getStationReadings = new JButton("Station Readings");
         getAllReadings = new JButton("All Readings");
 
-        serverPanel.add(stationListLabel);
-        serverPanel.add(stationListScroll);
+        stationPanel.add(stationListLabel);
+        stationPanel.add(stationListScroll);
+        stationPanel.add(getStationReadings);
 
         //Reading Panel
         readingPanel.setLayout(new BoxLayout(readingPanel, BoxLayout.PAGE_AXIS));
@@ -356,7 +358,7 @@ public class MonitoringCentre extends JFrame
         alertPanel.add(alertLabel);
         alertPanel.add(alertListScroll);
 
-        getCentreReadings = new JButton("Server Readings");
+        getServerReadings = new JButton("Server Readings");
         getCurrentConnectedReadings = new JButton("Poll Connected Server Stations");
 
         //Build Panel
@@ -366,10 +368,8 @@ public class MonitoringCentre extends JFrame
         panel.add(alertPanel);
 
         //ToDo: Name the buttons more consistently
-        panel.add(getCentreStations);
-        panel.add(getStationReadings);
         panel.add(getAllReadings);
-        panel.add(getCentreReadings);
+        panel.add(getServerReadings);
         panel.add(getCurrentConnectedReadings);
 
 
@@ -410,7 +410,7 @@ public class MonitoringCentre extends JFrame
     {
         //ToDo: Might be worth initialising stuff at class level and making methods to do setup GUI for each panel, then one to do listeners and put GUI together
         //Button Listeners
-        getCentreStations.addActionListener(new ActionListener()
+        getServerStations.addActionListener(new ActionListener()
         {
             @Override
             public void actionPerformed(ActionEvent actionEvent)
@@ -440,7 +440,7 @@ public class MonitoringCentre extends JFrame
             }
         });
 
-        getCentreReadings.addActionListener(new ActionListener()
+        getServerReadings.addActionListener(new ActionListener()
         {
             @Override
             public void actionPerformed(ActionEvent actionEvent)
@@ -548,7 +548,7 @@ public class MonitoringCentre extends JFrame
                 servant.register_agency(agency);
 
                 JOptionPane.showMessageDialog(panel, "Agency " + name +
-                        " saved. \n They will be notified in the event of critical readings");
+                        " saved.\nThey will be notified in the event of critical readings");
 
                 agencyName.setText("");
                 locationField.setText("");
@@ -565,8 +565,21 @@ public class MonitoringCentre extends JFrame
 
     public static void main(String[] args)
     {
-        final String[] arguments = args;
-        java.awt.EventQueue.invokeLater(() -> new MonitoringCentre(arguments).setVisible(true));
+        JFrame frame = new JFrame();
+        String prompt = "Please enter the locations region";
+        String text = JOptionPane.showInputDialog(frame, prompt);
+
+        args = new String[]{text};
+
+        if(text != null)
+        {
+            final String[] arguments = args;
+            java.awt.EventQueue.invokeLater(() -> new MonitoringCentre(arguments).setVisible(true));
+        } else
+        {
+            System.err.println("You must add a region");
+            //ToDo: Make a method for this to take region and output JDialog with what failed
+        }
     }
 
     //Renderer classes to format our lists

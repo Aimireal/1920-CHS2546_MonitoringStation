@@ -195,6 +195,50 @@ public class MonitoringStation extends JFrame
 
     public static void main(String[] args)
     {
+        //Build our initialisation screen
+        JPanel panel = new JPanel();
+        //ToDo: Maybe look at pulling current servers for serverName
+        JLabel nameLabel = new JLabel("Enter the stations name");
+        JLabel locationLabel = new JLabel("Enter the stations location");
+        JLabel serverLabel = new JLabel("Enter the server the station belongs to");
+
+        JTextField stationName = new JTextField();
+        JTextField stationLocation = new JTextField();
+        JTextField serverName = new JTextField();
+
+        panel.add(nameLabel);
+        panel.add(stationName);
+        panel.add(locationLabel);
+        panel.add(stationLocation);
+        panel.add(serverLabel);
+        panel.add(serverName);
+
+        //Take provided arguments and attempt to create an instance of the server
+        String name = stationName.toString();
+        String location = stationLocation.toString();
+        String server = serverName.toString();
+
+        args = new String[]{name, location.toString(), server.toString()};
+
+        if(name != null && location != null && server != null)
+        {
+            final String[] arguments = args;
+            java.awt.EventQueue.invokeLater(new Runnable()
+            {
+                @Override
+                public void run()
+                {
+                    new MonitoringStation(arguments).setVisible(true);
+                }
+            });
+        } else
+        {
+            System.out.println("Failed to provide all arguments");
+            //ToDo: Make a method for this to take name, location and server and output JDialog with what failed
+        }
+
+        /*
+        //Old run methods
         final String[] arguments = args;
         java.awt.EventQueue.invokeLater(new Runnable()
         {
@@ -204,6 +248,7 @@ public class MonitoringStation extends JFrame
                 new MonitoringStation(arguments).setVisible(true);
             }
         });
+         */
     }
 
     public void setupGUI()

@@ -11,6 +11,7 @@ import org.omg.CosNaming.NamingContextPackage.NotFound;
 import org.omg.PortableServer.POA;
 import org.omg.PortableServer.POAHelper;
 
+import javax.swing.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -251,6 +252,37 @@ public class LocalServer
 
     public static void main(String[] args)
     {
-        new LocalServer(args);
+        //Build our initialisation screen
+        JPanel panel = new JPanel();
+        //ToDo: Maybe look at pulling current centres for serverRegion
+        JLabel nameLabel = new JLabel("Enter the servers name");
+        JLabel locationLabel = new JLabel("Enter the servers location");
+        JLabel regionLabel = new JLabel("Enter the servers region (What centre it's for)");
+
+        JTextField serverName = new JTextField();
+        JTextField serverLocation = new JTextField();
+        JTextField serverRegion = new JTextField();
+
+        panel.add(nameLabel);
+        panel.add(serverName);
+        panel.add(locationLabel);
+        panel.add(serverLocation);
+        panel.add(regionLabel);
+        panel.add(serverRegion);
+
+        //Take provided arguments and attempt to create an instance of the server
+        String name = serverName.toString();
+        String location = serverLocation.toString();
+        String region = serverLocation.toString();
+
+        args = new String[]{name, serverLocation.toString(), serverRegion.toString()};
+
+        if(name != null && location != null && region != null)
+        {
+            new LocalServer(args);
+        } else
+        {
+            System.err.println("You must add a region");
+        }
     }
 }
