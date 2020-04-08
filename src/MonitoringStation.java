@@ -196,29 +196,17 @@ public class MonitoringStation extends JFrame
     public static void main(String[] args)
     {
         //Build our initialisation screen
-        JPanel panel = new JPanel();
-        //ToDo: Maybe look at pulling current servers for serverName
-        JLabel nameLabel = new JLabel("Enter the stations name");
-        JLabel locationLabel = new JLabel("Enter the stations location");
-        JLabel serverLabel = new JLabel("Enter the server the station belongs to");
+        JFrame frame = new JFrame();
+        String namePrompt = "Please enter the stations name";
+        String name = JOptionPane.showInputDialog(frame, namePrompt);
 
-        JTextField stationName = new JTextField();
-        JTextField stationLocation = new JTextField();
-        JTextField serverName = new JTextField();
+        String locationPrompt = "Please enter the stations location";
+        String location = JOptionPane.showInputDialog(frame, locationPrompt);
 
-        panel.add(nameLabel);
-        panel.add(stationName);
-        panel.add(locationLabel);
-        panel.add(stationLocation);
-        panel.add(serverLabel);
-        panel.add(serverName);
+        String serverPrompt = "Please enter the stations server";
+        String server = JOptionPane.showInputDialog(frame, serverPrompt);
 
-        //Take provided arguments and attempt to create an instance of the server
-        String name = stationName.toString();
-        String location = stationLocation.toString();
-        String server = serverName.toString();
-
-        args = new String[]{name, location.toString(), server.toString()};
+        args = new String[]{name, location, server};
 
         if(name != null && location != null && server != null)
         {
@@ -233,22 +221,8 @@ public class MonitoringStation extends JFrame
             });
         } else
         {
-            System.out.println("Failed to provide all arguments");
-            //ToDo: Make a method for this to take name, location and server and output JDialog with what failed
+            JOptionPane.showMessageDialog(frame, "Please provide all details", "Error", JOptionPane.WARNING_MESSAGE);
         }
-
-        /*
-        //Old run methods
-        final String[] arguments = args;
-        java.awt.EventQueue.invokeLater(new Runnable()
-        {
-            @Override
-            public void run()
-            {
-                new MonitoringStation(arguments).setVisible(true);
-            }
-        });
-         */
     }
 
     public void setupGUI()

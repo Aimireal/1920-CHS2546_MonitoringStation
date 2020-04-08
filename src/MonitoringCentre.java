@@ -577,8 +577,7 @@ public class MonitoringCentre extends JFrame
             java.awt.EventQueue.invokeLater(() -> new MonitoringCentre(arguments).setVisible(true));
         } else
         {
-            System.err.println("You must add a region");
-            //ToDo: Make a method for this to take region and output JDialog with what failed
+            JOptionPane.showMessageDialog(frame, "Please provide all details", "Error", JOptionPane.WARNING_MESSAGE);
         }
     }
 

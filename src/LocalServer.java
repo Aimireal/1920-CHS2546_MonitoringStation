@@ -252,9 +252,9 @@ public class LocalServer
 
     public static void main(String[] args)
     {
+        /*
         //Build our initialisation screen
         JPanel panel = new JPanel();
-        //ToDo: Maybe look at pulling current centres for serverRegion
         JLabel nameLabel = new JLabel("Enter the servers name");
         JLabel locationLabel = new JLabel("Enter the servers location");
         JLabel regionLabel = new JLabel("Enter the servers region (What centre it's for)");
@@ -276,13 +276,26 @@ public class LocalServer
         String region = serverLocation.toString();
 
         args = new String[]{name, serverLocation.toString(), serverRegion.toString()};
+         */
 
-        if(name != null && location != null && region != null)
+        JFrame frame = new JFrame();
+        String namePrompt = "Please enter the servers name";
+        String name = JOptionPane.showInputDialog(frame, namePrompt);
+
+        String locationPrompt = "Please enter the servers location";
+        String location = JOptionPane.showInputDialog(frame, locationPrompt);
+
+        String mcPrompt = "Please enter the servers Monitoring Centre";
+        String monitoringCentre = JOptionPane.showInputDialog(frame, mcPrompt);
+
+        args = new String[]{name, location, monitoringCentre};
+
+        if(name != null && location != null && monitoringCentre != null)
         {
             new LocalServer(args);
         } else
         {
-            System.err.println("You must add a region");
+            JOptionPane.showMessageDialog(frame, "Please provide all details", "Error", JOptionPane.WARNING_MESSAGE);
         }
     }
 }
