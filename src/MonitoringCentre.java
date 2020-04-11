@@ -9,6 +9,8 @@ import org.omg.PortableServer.POA;
 import org.omg.PortableServer.POAHelper;
 
 import javax.swing.*;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -196,7 +198,6 @@ public class MonitoringCentre extends JFrame
     private JPanel alertPanel = new JPanel();
     private JPanel agencyPanel = new JPanel();
 
-    private JButton getServerStations;
     private JButton getServerReadings;
     private JButton getStationReadings;
     private JButton getAllReadings;
@@ -266,7 +267,6 @@ public class MonitoringCentre extends JFrame
     }
 
 
-    //ToDo: Check use of ServerListModel and finish addToCentreList function. Change name of it too
     public void setupGUI()
     {
         //Draw GUI
@@ -280,11 +280,44 @@ public class MonitoringCentre extends JFrame
         //Server Panel
         serverPanel.setLayout(new BoxLayout(serverPanel, BoxLayout.PAGE_AXIS));
         serverPanel.setPreferredSize(new Dimension(250, 200));
+        getCurrentConnectedReadings = new JButton("Server Current Readings");
 
         serverListModel = new DefaultListModel<>();
         serverList = new JList<>(serverListModel);
         serverList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         serverList.setVisibleRowCount(-1);
+        serverList.addListSelectionListener(new ListSelectionListener()
+        {
+            @Override
+            public void valueChanged(ListSelectionEvent event)
+            {
+                if(!event.getValueIsAdjusting())
+                {
+                    stationListModel.clear();
+                    ServerDetails server = serverList.getSelectedValue();
+                    if(server != null)
+                    {
+                        try
+                        {
+                            LocalServer localServerServant = LocalServerHelper.narrow(namingService.resolve_str(server.server_name));
+                            StationDetails[] stationList = localServerServant.connected_servers();
+
+                            for(int i = 0; i < stationList.length; i++)
+                            {
+                                stationListModel.addElement(stationList[i]);
+                                System.out.println("ServerList: Added element");
+                            }
+                        }catch (Exception e)
+                        {
+                            e.printStackTrace();
+                        }
+                    } else
+                    {
+                        System.out.print("ServerList: Selected is null");
+                    }
+                }
+            }
+        });
 
         ServerListCellRenderer serverRenderer = new ServerListCellRenderer();
         serverList.setCellRenderer(serverRenderer);
@@ -292,11 +325,10 @@ public class MonitoringCentre extends JFrame
         JScrollPane serverListScroll = new JScrollPane(serverList);
         serverListScroll.setPreferredSize((new Dimension(250, 80)));
         JLabel serverListLabel = new JLabel("Connected Servers");
-        getServerStations = new JButton("Stations at Server");
 
         serverPanel.add(serverListLabel);
         serverPanel.add(serverListScroll);
-        serverPanel.add(getServerStations);
+        serverPanel.add(getCurrentConnectedReadings);
 
         //Station Panel
         stationPanel.setLayout(new BoxLayout(stationPanel, BoxLayout.PAGE_AXIS));
@@ -312,7 +344,7 @@ public class MonitoringCentre extends JFrame
 
         JScrollPane stationListScroll = new JScrollPane(stationList);
         stationListScroll.setPreferredSize((new Dimension(250, 80)));
-        JLabel stationListLabel = new JLabel("Stations for Server");
+        JLabel stationListLabel = new JLabel("Stations at selected Server");
         getStationReadings = new JButton("Station Readings");
         getAllReadings = new JButton("All Readings");
 
@@ -359,7 +391,6 @@ public class MonitoringCentre extends JFrame
         alertPanel.add(alertListScroll);
 
         getServerReadings = new JButton("Server Readings");
-        getCurrentConnectedReadings = new JButton("Poll Connected Server Stations");
 
         //Build Panel
         panel.add(serverPanel);
@@ -370,8 +401,6 @@ public class MonitoringCentre extends JFrame
         //ToDo: Name the buttons more consistently
         panel.add(getAllReadings);
         panel.add(getServerReadings);
-        panel.add(getCurrentConnectedReadings);
-
 
         //Agency Panel
         agencyPanel.setLayout(new BoxLayout(agencyPanel, BoxLayout.PAGE_AXIS));
@@ -410,36 +439,6 @@ public class MonitoringCentre extends JFrame
     {
         //ToDo: Might be worth initialising stuff at class level and making methods to do setup GUI for each panel, then one to do listeners and put GUI together
         //Button Listeners
-        getServerStations.addActionListener(new ActionListener()
-        {
-            @Override
-            public void actionPerformed(ActionEvent actionEvent)
-            {
-                stationListModel.clear();
-                ServerDetails server = serverList.getSelectedValue();
-                if(server != null)
-                {
-                    try
-                    {
-                        //Find the servant for the server
-                        LocalServer localServerServant = LocalServerHelper.narrow(namingService.resolve_str(server.server_name));
-                        StationDetails[] stationList = localServerServant.connected_servers();
-
-                        for(int i = 0; i < stationList.length; i++)
-                        {
-                            stationListModel.addElement(stationList[i]);
-                        }
-                    } catch(Exception e)
-                    {
-                        e.printStackTrace();
-                    }
-                }else
-                {
-                    System.out.println("Server not provided");
-                }
-            }
-        });
-
         getServerReadings.addActionListener(new ActionListener()
         {
             @Override
@@ -451,10 +450,9 @@ public class MonitoringCentre extends JFrame
                 {
                     LocalServer localServer = LocalServerHelper.narrow(namingService.resolve_str(server.server_name));
                     Reading[] serverReadings = localServer.all_readings();
-
-                    for(int i = 0; i < serverReadings.length; i++)
+                    for (Reading serverReading : serverReadings)
                     {
-                        readingListModel.addElement(serverReadings[i]);
+                        readingListModel.addElement(serverReading);
                     }
                 } catch(Exception e)
                 {
@@ -475,9 +473,9 @@ public class MonitoringCentre extends JFrame
                     Reading[] stationReadings = localServerServant.get_readings(stationList.getSelectedValue().station_name);
                     if(stationReadings != null)
                     {
-                        for(int i = 0; i < stationReadings.length; i++)
+                        for (Reading stationReading : stationReadings)
                         {
-                            readingListModel.addElement(stationReadings[i]);
+                            readingListModel.addElement(stationReading);
                         }
                     } else
                     {
@@ -497,9 +495,9 @@ public class MonitoringCentre extends JFrame
             {
                 readingListModel.clear();
                 Reading[] readings = servant.all_readings();
-                for(int i = 0; i < readings.length; i++)
+                for (Reading reading : readings)
                 {
-                    readingListModel.addElement(readings[i]);
+                    readingListModel.addElement(reading);
                 }
             }
         });
@@ -561,24 +559,6 @@ public class MonitoringCentre extends JFrame
     public void addToServerList(ServerDetails serverDetails)
     {
         serverListModel.addElement(serverDetails);
-    }
-
-    public static void main(String[] args)
-    {
-        JFrame frame = new JFrame();
-        String prompt = "Please enter the locations region";
-        String text = JOptionPane.showInputDialog(frame, prompt);
-
-        args = new String[]{text};
-
-        if(text != null)
-        {
-            final String[] arguments = args;
-            java.awt.EventQueue.invokeLater(() -> new MonitoringCentre(arguments).setVisible(true));
-        } else
-        {
-            JOptionPane.showMessageDialog(frame, "Please provide all details", "Error", JOptionPane.WARNING_MESSAGE);
-        }
     }
 
     //Renderer classes to format our lists
@@ -657,4 +637,21 @@ public class MonitoringCentre extends JFrame
         }
     }
 
+    public static void main(String[] args)
+    {
+        JFrame frame = new JFrame();
+        String prompt = "Please enter the locations region";
+        String text = JOptionPane.showInputDialog(frame, prompt);
+
+        args = new String[]{text};
+
+        if(text != null)
+        {
+            final String[] arguments = args;
+            java.awt.EventQueue.invokeLater(() -> new MonitoringCentre(arguments).setVisible(true));
+        } else
+        {
+            JOptionPane.showMessageDialog(frame, "Please provide all details", "Error", JOptionPane.WARNING_MESSAGE);
+        }
+    }
 }

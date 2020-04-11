@@ -147,14 +147,14 @@ class LocalServerServant extends LocalServerPOA
         System.out.println("New Station: " + info.station_name);
     }
 
-    //ToDo: Look for a new way to do this stuff and fix monitoringCentre not being known. It might be monitoringStation it wants even
+
     @Override
     public void send_alert(Reading reading)
     {
         ArrayList<Reading> alertsSend = alerts.stream().filter(
                 r->!r.station_name.equals(reading.station_name)
-                && r.date == reading.date
-                && (r.time + timePeriod >= reading.time || r.time == reading.time))
+                        && r.date == reading.date
+                        && (r.time + timePeriod >= reading.time || r.time == reading.time))
                 .collect(Collectors.toCollection(ArrayList::new));
 
         if(!readingReader(alerts, reading))
@@ -241,7 +241,6 @@ public class LocalServer
             centreServant.register_local_server(newServer);
             System.out.println("LocalServer Online: " + name);
 
-            //ToDo: Remove this if I make another GUI
             orb.run();
         } catch(Exception e)
         {
@@ -252,32 +251,7 @@ public class LocalServer
 
     public static void main(String[] args)
     {
-        /*
-        //Build our initialisation screen
-        JPanel panel = new JPanel();
-        JLabel nameLabel = new JLabel("Enter the servers name");
-        JLabel locationLabel = new JLabel("Enter the servers location");
-        JLabel regionLabel = new JLabel("Enter the servers region (What centre it's for)");
-
-        JTextField serverName = new JTextField();
-        JTextField serverLocation = new JTextField();
-        JTextField serverRegion = new JTextField();
-
-        panel.add(nameLabel);
-        panel.add(serverName);
-        panel.add(locationLabel);
-        panel.add(serverLocation);
-        panel.add(regionLabel);
-        panel.add(serverRegion);
-
-        //Take provided arguments and attempt to create an instance of the server
-        String name = serverName.toString();
-        String location = serverLocation.toString();
-        String region = serverLocation.toString();
-
-        args = new String[]{name, serverLocation.toString(), serverRegion.toString()};
-         */
-
+        //Nasty way to initialise our instance as I can't refer to our non static current values
         JFrame frame = new JFrame();
         String namePrompt = "Please enter the servers name";
         String name = JOptionPane.showInputDialog(frame, namePrompt);
