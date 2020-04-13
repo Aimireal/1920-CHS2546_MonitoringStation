@@ -37,8 +37,8 @@ class MonitoringStationServant extends MonitoringStationPOA
     {
         //Get Reading
         int readingValue = parent.getReadingValue();
-        String stationName = get_info().station_name;
-        int time = getTime();
+        String stationName = get_details().station_name;
+        int time = timeAsInt();
         int date = Calendar.getInstance().get(Calendar.DAY_OF_YEAR);
 
         //Create and check value of reading
@@ -58,19 +58,19 @@ class MonitoringStationServant extends MonitoringStationPOA
     }
 
     @Override
-    public void take_reading()
+    public void get_reading()
     {
         readings.add(reading());
     }
 
     @Override
-    public void set_info(StationDetails info)
+    public void set_details(StationDetails info)
     {
         this.stationDetails = info;
     }
 
     @Override
-    public StationDetails get_info()
+    public StationDetails get_details()
     {
         return stationDetails;
     }
@@ -83,7 +83,7 @@ class MonitoringStationServant extends MonitoringStationPOA
             @Override
             public void actionPerformed(ActionEvent actionEvent)
             {
-                take_reading();
+                get_reading();
                 parent.populateLog();
             }
         });
@@ -103,7 +103,7 @@ class MonitoringStationServant extends MonitoringStationPOA
         readings.clear();
     }
 
-    public int getTime()
+    public int timeAsInt()
     {
         int hours = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
         int minute = Calendar.getInstance().get(Calendar.MINUTE);
@@ -174,7 +174,7 @@ public class MonitoringStation extends JFrame
                 org.omg.CORBA.Object ref = rootpoa.servant_to_reference(servant);
                 AssignmentTwo.MonitoringStation narrowRef = MonitoringStationHelper.narrow(ref);
                 StationDetails newStationDetails = new StationDetails(name, location);
-                servant.set_info(newStationDetails);
+                servant.set_details(newStationDetails);
 
                 //Bind our object in the naming service against the object it is part of
                 NameComponent[] nsName = nameService.to_name(name);
@@ -234,7 +234,7 @@ public class MonitoringStation extends JFrame
         getContentPane().add(panel, "Center");
 
         setSize(300, 450);
-        setTitle("Monitoring Station: " + servant.get_info().station_name + " - " + servant.get_info().location);
+        setTitle("Monitoring Station: " + servant.get_details().station_name + " - " + servant.get_details().location);
 
         textarea.append("Station activated");
 
@@ -252,7 +252,7 @@ public class MonitoringStation extends JFrame
             @Override
             public void actionPerformed(ActionEvent actionEvent)
             {
-                servant.take_reading();
+                servant.get_reading();
                 populateLog();
             }
         });

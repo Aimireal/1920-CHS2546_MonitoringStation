@@ -53,19 +53,19 @@ class LocalServerServant extends LocalServerPOA
     }
 
     @Override
-    public StationDetails[] connected_servers()
+    public StationDetails[] connected_stations()
     {
         return connectedStations.toArray(new StationDetails[0]);
     }
 
     @Override
-    public ServerDetails get_centre_info()
+    public ServerDetails get_server_details()
     {
         return serverDetails;
     }
 
     @Override
-    public void set_info(ServerDetails serverDetails)
+    public void set_details(ServerDetails serverDetails)
     {
         this.serverDetails = serverDetails;
     }
@@ -165,7 +165,7 @@ class LocalServerServant extends LocalServerPOA
 
         if(alertsSend.size() > 1)
         {
-            Alert alert = new Alert(this.get_centre_info().server_name, alertsSend.toArray(new Reading[0]));
+            Alert alert = new Alert(this.get_server_details().server_name, alertsSend.toArray(new Reading[0]));
             parent.centreServant.send_alert(alert);
         }
     }
@@ -237,7 +237,7 @@ public class LocalServer
 
             centreServant = MonitoringCentreHelper.narrow(nameService.resolve_str(monitoringCentre));
             ServerDetails newServer = new ServerDetails(name, location);
-            servant.set_info(newServer);
+            servant.set_details(newServer);
             centreServant.register_local_server(newServer);
             System.out.println("LocalServer Online: " + name);
 

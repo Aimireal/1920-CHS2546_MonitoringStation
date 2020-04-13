@@ -141,9 +141,11 @@ class MonitoringCentreServant extends MonitoringCentrePOA
                 parent.alertListModel.addElement(alert);
                 StringBuilder alertMessage = new StringBuilder("Alarm triggered at local server:" + alert.server_name);
 
-                for(int i = 0; i < alert.alert_readings.length; i++)
+                for(int i = 0; i < alert.alerts.length; i++)
                 {
-                    alertMessage.append(alert.alert_readings[i].station_name).append(" - Reading Level: ").append(alert.alert_readings[i].reading_level).append(" - Time: ").append(alert.alert_readings[i].time).append("/").append(alert.alert_readings[i].date);
+                    alertMessage.append(alert.alerts[i].station_name)
+                            .append(" - Reading Level: ").append(alert.alerts[i].reading_level)
+                            .append(" - Time: ").append(alert.alerts[i].time).append("/").append(alert.alerts[i].date);
                 }
 
                 //Contact the agencies
@@ -300,7 +302,7 @@ public class MonitoringCentre extends JFrame
                         try
                         {
                             LocalServer localServerServant = LocalServerHelper.narrow(namingService.resolve_str(server.server_name));
-                            StationDetails[] stationList = localServerServant.connected_servers();
+                            StationDetails[] stationList = localServerServant.connected_stations();
 
                             for(int i = 0; i < stationList.length; i++)
                             {
@@ -511,7 +513,7 @@ public class MonitoringCentre extends JFrame
                 try
                 {
                     LocalServer localServerServant = LocalServerHelper.narrow(namingService.resolve_str(serverList.getSelectedValue().server_name));
-                    StationDetails[] stations = localServerServant.connected_servers();
+                    StationDetails[] stations = localServerServant.connected_stations();
                     ArrayList<Reading> pollReadings = new ArrayList<>();
 
                     for(int i = 0; i < stations.length; i++)
@@ -627,9 +629,9 @@ public class MonitoringCentre extends JFrame
                 Alert alert = (Alert) value;
 
                 StringBuilder alertMessage = new StringBuilder(alert.server_name + " at station(s): ");
-                for(int i = 0; i < alert.alert_readings.length; i++)
+                for(int i = 0; i < alert.alerts.length; i++)
                 {
-                    alertMessage.append(alert.alert_readings[i].station_name).append(", ");
+                    alertMessage.append(alert.alerts[i].station_name).append(", ");
                 }
                 setText(alertMessage.toString());
             }

@@ -1,45 +1,45 @@
-module Assignment2 {
+module AssignmentTwo {
     struct Reading {
-        long date;
         long time;
-        string monitoring_station_name;
-        long reading_value;
+        long date;
+        string station_name;
+        long reading_level;
     };
-    struct StationInfo {
-        string monitoring_station_name;
-        string monitoring_station_location;
+    struct StationDetails {
+        string station_name;
+        string location;
     };
-    struct ServerInfo {
-        string local_server_name;
-        string local_server_location;
+    struct ServerDetails {
+        string server_name;
+        string location;
     };
     typedef sequence<Reading> readings;
-    typedef sequence<StationInfo> stationList;
-    typedef sequence<ServerInfo> localServerList;
+    typedef sequence<StationDetails> stationList;
+    typedef sequence<ServerDetails> serverList;
     struct Alert {
-        string local_server_name;
+        string server_name;
         readings alerts;
     };
     interface MonitoringStation {
         Reading reading();
         readonly attribute readings reading_log;
-        void set_reading();
-        void set_info(in StationInfo info);
-        StationInfo get_info();
-        void_activate();
-        void_deactivate();
-        void_reset();
+        void get_reading();
+        void set_details(in StationDetails details);
+        StationDetails get_details();
+        void activate();
+        void deactivate();
+        void reset();
     };
     interface LocalServer {
         readonly attribute stationList connected_stations;
-        ServerInfo get_localserver_info();
-        void set_info(in ServerInfo info);
+        ServerDetails get_server_details();
+        void set_details(in ServerDetails details);
         readings all_readings();
-        readings get_readings(in string monitoring_station_name)
-        readings current_readings();
+        readings get_readings(in string station_name);
+        readings get_current_readings();
         readings alerts();
-        void register_monitoring_station(in StationInfo info);
-        void signal_alert(in Reading reading);
+        void register_monitoring_station(in StationDetails details);
+        void send_alert(in Reading reading);
     };
     struct Agency {
             string agency_name;
@@ -48,11 +48,11 @@ module Assignment2 {
         };
     interface MonitoringCentre {
         readings all_readings();
-        readings get_readings(in string local_server_name);
-        readonly attribute serverList connected_local_servers;
-        void register_local_server(in ServerInfo info);
-        void unregister_local_server(in ServerInfo info);
-        void signal_alert(in Alert alert);
+        readings get_readings(in string server_name);
+        readonly attribute serverList connected_servers;
+        void register_local_server(in ServerDetails details);
+        void unregister_local_server(in ServerDetails details);
+        void send_alert(in Alert alert);
         void register_agency(in Agency agency);
     };
 };
