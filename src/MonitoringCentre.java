@@ -190,6 +190,7 @@ public class MonitoringCentre extends JFrame
 {
     //Initialise GUI elements
     private String name;
+    private JFrame agencyFrame = new JFrame();
     NamingContextExt namingService;
     MonitoringCentreServant servant;
 
@@ -205,6 +206,7 @@ public class MonitoringCentre extends JFrame
     private JButton getAllReadings;
     private JButton registerAgency;
     private JButton getCurrentConnectedReadings;
+    private JButton agencyButton;
 
     private JList<ServerDetails> serverList;
     private JList<StationDetails> stationList;
@@ -400,11 +402,10 @@ public class MonitoringCentre extends JFrame
         panel.add(readingPanel);
         panel.add(alertPanel);
 
-        //ToDo: Name the buttons more consistently
         panel.add(getAllReadings);
         panel.add(getServerReadings);
 
-        //Agency Panel
+        //Agency Frame and Panel
         agencyPanel.setLayout(new BoxLayout(agencyPanel, BoxLayout.PAGE_AXIS));
         JLabel agencyLabel = new JLabel("Agency Name");
         agencyName = new JTextField();
@@ -422,11 +423,24 @@ public class MonitoringCentre extends JFrame
         agencyPanel.add(contactField);
         agencyPanel.add(registerAgency);
 
+        agencyButton = new JButton("Agencies");
+        panel.add(agencyButton);
+        agencyButton.addActionListener(new ActionListener()
+        {
+            @Override
+            public void actionPerformed(ActionEvent actionEvent)
+            {
+                //Open AgencyPanel in a new screen
+                agencyFrame = new JFrame();
+                agencyFrame.add(agencyPanel);
+                agencyFrame.setSize(150, 200);
+                agencyFrame.setVisible(true);
+            }
+        });
 
-        panel.add(agencyPanel);
-
+        //Final setup
         getContentPane().add(panel, "Center");
-        setSize(600, 700);
+        setSize(550, 500);
 
         addWindowListener(new java.awt.event.WindowAdapter()
         {
