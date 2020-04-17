@@ -78,7 +78,7 @@ class MonitoringStationServant extends MonitoringStationPOA
     @Override
     public void activate()
     {
-        timer = new Timer(5000, new ActionListener()
+        timer = new Timer(10000, new ActionListener()
         {
             @Override
             public void actionPerformed(ActionEvent actionEvent)
