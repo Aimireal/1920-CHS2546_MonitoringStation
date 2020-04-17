@@ -15,6 +15,8 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
+import java.awt.event.FocusEvent;
+import java.awt.event.FocusListener;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -139,16 +141,24 @@ class MonitoringCentreServant extends MonitoringCentrePOA
             {
                 alerts.add(alert);
                 parent.alertListModel.addElement(alert);
-                StringBuilder alertMessage = new StringBuilder("Alarm triggered at local server:" + alert.server_name);
+                StringBuilder alertMessage = new StringBuilder("Alarm triggered at local server: " + alert.server_name);
 
                 for(int i = 0; i < alert.alerts.length; i++)
                 {
-                    alertMessage.append(alert.alerts[i].station_name)
+                    //Format Time
+                    int yearInt = Year.now().getValue();
+                    Year year = Year.of(yearInt);
+                    LocalTime alertTime = LocalTime.MIN.plus(Duration.ofMinutes(alert.alerts[i].time));
+                    LocalDate alertDate = year.atDay(alert.alerts[i].date);
+
+                    //Display message
+                    alertMessage.append("\n").append(alert.alerts[i].station_name)
                             .append(" - Reading Level: ").append(alert.alerts[i].reading_level)
-                            .append(" - Time: ").append(alert.alerts[i].time).append("/").append(alert.alerts[i].date);
+                            .append(" - Time: ").append(alertTime)
+                            .append("/").append(alertDate).append("\n");
                 }
 
-                //Contact the agencies
+                //Contact agencies if they belong to the set region
                 ArrayList<Agency> localAgencies = agencies.stream().filter(
                         a->a.agency_region.equals(alert.server_name)).collect(Collectors.toCollection(ArrayList::new));
 
@@ -156,7 +166,8 @@ class MonitoringCentreServant extends MonitoringCentrePOA
                 {
                     for(Agency agency: localAgencies)
                     {
-                        alertMessage.append(agency.agency_name).append(" is to be notified via: ").append(agency.agency_contact);
+                        alertMessage.append(agency.agency_name).append(" is to be notified via: ")
+                                .append(agency.agency_contact).append("\n");
                     }
                 }
                 JOptionPane.showMessageDialog(parent, alertMessage.toString());
@@ -270,11 +281,27 @@ public class MonitoringCentre extends JFrame
         }
     }
 
-
     public void setupGUI()
     {
         //Draw GUI
+        setTitle("Monitoring Centre: " + name);
+
         panel = new JPanel();
+        panel.addFocusListener(new FocusListener()
+        {
+            @Override
+            public void focusGained(FocusEvent focusEvent)
+            {
+                refreshServerList();
+            }
+
+            @Override
+            public void focusLost(FocusEvent focusEvent)
+            {
+                refreshServerList();
+            }
+        });
+
         serverPanel = new JPanel();
         stationPanel = new JPanel();
         readingPanel = new JPanel();
@@ -297,28 +324,7 @@ public class MonitoringCentre extends JFrame
             {
                 if(!event.getValueIsAdjusting())
                 {
-                    stationListModel.clear();
-                    ServerDetails server = serverList.getSelectedValue();
-                    if(server != null)
-                    {
-                        try
-                        {
-                            LocalServer localServerServant = LocalServerHelper.narrow(namingService.resolve_str(server.server_name));
-                            StationDetails[] stationList = localServerServant.connected_stations();
-
-                            for(int i = 0; i < stationList.length; i++)
-                            {
-                                stationListModel.addElement(stationList[i]);
-                                System.out.println("ServerList: Added element");
-                            }
-                        }catch (Exception e)
-                        {
-                            e.printStackTrace();
-                        }
-                    } else
-                    {
-                        System.out.print("ServerList: Selected is null");
-                    }
+                    refreshServerList();
                 }
             }
         });
@@ -440,7 +446,7 @@ public class MonitoringCentre extends JFrame
 
         //Final setup
         getContentPane().add(panel, "Center");
-        setSize(550, 500);
+        setSize(525, 475);
 
         addWindowListener(new java.awt.event.WindowAdapter()
         {
@@ -575,6 +581,32 @@ public class MonitoringCentre extends JFrame
     public void addToServerList(ServerDetails serverDetails)
     {
         serverListModel.addElement(serverDetails);
+    }
+
+    public void refreshServerList()
+    {
+        stationListModel.clear();
+        ServerDetails server = serverList.getSelectedValue();
+        if(server != null)
+        {
+            try
+            {
+                LocalServer localServerServant = LocalServerHelper.narrow(namingService.resolve_str(server.server_name));
+                StationDetails[] stationList = localServerServant.connected_stations();
+
+                for (StationDetails stationDetails : stationList)
+                {
+                    stationListModel.addElement(stationDetails);
+                    System.out.println("ServerList: Added element");
+                }
+            }catch (Exception e)
+            {
+                e.printStackTrace();
+            }
+        } else
+        {
+            System.out.print("ServerList: Selected is null");
+        }
     }
 
     //Renderer classes to format our lists
