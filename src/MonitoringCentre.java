@@ -1,6 +1,7 @@
 import AssignmentTwo.*;
 import AssignmentTwo.LocalServer;
 import AssignmentTwo.MonitoringStation;
+
 import org.omg.CORBA.ORB;
 import org.omg.CosNaming.NameComponent;
 import org.omg.CosNaming.NamingContextExt;
@@ -25,181 +26,8 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 
-class MonitoringCentreServant extends MonitoringCentrePOA
-{
-    //Args
-    private MonitoringCentre parent;
-    private ArrayList<ServerDetails> connectedServers;
-    private ArrayList<Reading> readings;
-    private ArrayList<Alert> alerts;
-    private ArrayList<Agency> agencies;
-
-    private ORB orb;
-    private NamingContextExt namingService;
-
-
-    public MonitoringCentreServant(MonitoringCentre parentGUI, ORB orbValue)
-    {
-        this.parent = parentGUI;
-        connectedServers = new ArrayList<>();
-        readings = new ArrayList<>();
-        alerts = new ArrayList<>();
-        agencies = new ArrayList<>();
-
-        try
-        {
-            orb = orbValue;
-            org.omg.CORBA.Object namingServiceObj = orb.resolve_initial_references("NameService");
-            if(namingServiceObj == null)
-            {
-                System.out.println("Naming Service not registered");
-                return;
-            }
-
-            namingService = NamingContextExtHelper.narrow(namingServiceObj);
-        } catch(Exception e)
-        {
-            System.err.println("Error: " + e);
-            e.printStackTrace(System.out);
-        }
-    }
-
-    @Override
-    public Reading[] all_readings()
-    {
-        readings.clear();
-        for (ServerDetails connectedServer : connectedServers)
-        {
-            String name = connectedServer.server_name;
-            try
-            {
-                //Server Reference
-                LocalServer localServerServant = LocalServerHelper.narrow(namingService.resolve_str(name));
-                ArrayList<Reading> localReadings = new ArrayList<>(Arrays.asList(localServerServant.all_readings()));
-
-                //Check if we have any new readings
-                //ToDo: We might only need to check Date/Time and station name. Probably can do this in line?
-                if (localReadings.size() != 0)
-                {
-                    Iterator<Reading> newIterator = localReadings.iterator();
-                    while(newIterator.hasNext())
-                    {
-                        Reading newReading = newIterator.next();
-                        if(!readingReader(readings, newReading))
-                        {
-                            readings.add(newReading);
-                        }
-                    }
-                }
-            } catch (Exception e)
-            {
-                e.printStackTrace();
-            }
-        }
-        return readings.toArray(new Reading[0]);
-    }
-
-    @Override
-    public Reading[] get_readings(String server_name)
-    {
-        try
-        {
-            LocalServer localServer = LocalServerHelper.narrow(namingService.resolve_str(server_name));
-            return localServer.all_readings();
-        } catch(Exception e)
-        {
-            return new Reading[0];
-        }
-    }
-
-    @Override
-    public ServerDetails[] connected_servers()
-    {
-        return connectedServers.toArray(new ServerDetails[0]);
-    }
-
-    @Override
-    public void register_local_server(ServerDetails serverDetails)
-    {
-        connectedServers.add(serverDetails);
-        parent.addToServerList(serverDetails);
-    }
-
-    @Override
-    public void unregister_local_server(ServerDetails serverDetails)
-    {
-        connectedServers.removeIf(server -> server.server_name.equals(serverDetails.server_name));
-    }
-
-    @Override
-    public void send_alert(Alert alert)
-    {
-        EventQueue.invokeLater(new Runnable()
-        {
-            @Override
-            public void run()
-            {
-                alerts.add(alert);
-                parent.alertListModel.addElement(alert);
-                StringBuilder alertMessage = new StringBuilder("Alarm triggered at local server: " + alert.server_name);
-
-                for(int i = 0; i < alert.alerts.length; i++)
-                {
-                    //Format Time
-                    int yearInt = Year.now().getValue();
-                    Year year = Year.of(yearInt);
-                    LocalTime alertTime = LocalTime.MIN.plus(Duration.ofMinutes(alert.alerts[i].time));
-                    LocalDate alertDate = year.atDay(alert.alerts[i].date);
-
-                    //Display message
-                    alertMessage.append("\n").append(alert.alerts[i].station_name)
-                            .append(" - Reading Level: ").append(alert.alerts[i].reading_level)
-                            .append(" - Time: ").append(alertTime)
-                            .append("/").append(alertDate).append("\n");
-                }
-
-                //Contact agencies if they belong to the set region
-                ArrayList<Agency> localAgencies = agencies.stream().filter(
-                        a->a.agency_region.equals(alert.server_name)).collect(Collectors.toCollection(ArrayList::new));
-
-                if(localAgencies.size() > 0)
-                {
-                    for(Agency agency: localAgencies)
-                    {
-                        alertMessage.append(agency.agency_name).append(" is to be notified via: ")
-                                .append(agency.agency_contact).append("\n");
-                    }
-                }
-                JOptionPane.showMessageDialog(parent, alertMessage.toString());
-            }
-        });
-    }
-
-    @Override
-    public void register_agency(Agency agency)
-    {
-        agencies.add(agency);
-    }
-
-    public boolean readingReader(ArrayList<Reading> list, Reading r)
-    {
-        for(Reading reading: list)
-        {
-            if((reading.reading_level == r.reading_level)
-                    && (reading.station_name.equals(r.station_name))
-                    && (reading.date == r.date)
-                    && (reading.time == r.time))
-            {
-                return true;
-            }
-        }
-        return false;
-    }
-}
-
 public class MonitoringCentre extends JFrame
 {
-    //Initialise GUI elements
     private String name;
     private JFrame agencyFrame = new JFrame();
     NamingContextExt namingService;
@@ -264,14 +92,12 @@ public class MonitoringCentre extends JFrame
             org.omg.CORBA.Object namingServiceObj = orb.resolve_initial_references("NameService");
             if (namingServiceObj == null)
                 return;
-
             namingService = NamingContextExtHelper.narrow(namingServiceObj);
 
             //Bind our monitoring station object in the naming service against our local server
             NameComponent[] nsName = namingService.to_name(name);
             namingService.rebind(nsName, narrowRef);
 
-            //SetupGUI and button functionality
             setupGUI();
             setupButtons();
         } catch (Exception e)
@@ -283,7 +109,6 @@ public class MonitoringCentre extends JFrame
 
     public void setupGUI()
     {
-        //Draw GUI
         setTitle("Monitoring Centre: " + name);
 
         panel = new JPanel();
@@ -308,7 +133,35 @@ public class MonitoringCentre extends JFrame
         alertPanel = new JPanel();
         agencyPanel = new JPanel();
 
-        //Server Panel
+        serverPanel();
+        stationPanel();
+        readingPanel();
+        alertPanel();
+        agencyPanel();
+
+        panel.add(serverPanel);
+        panel.add(stationPanel);
+        panel.add(readingPanel);
+        panel.add(alertPanel);
+
+        panel.add(getAllReadings);
+        panel.add(getServerReadings);
+        panel.add(agencyButton);
+
+        getContentPane().add(panel, "Center");
+        setSize(525, 475);
+
+        addWindowListener(new java.awt.event.WindowAdapter()
+        {
+            public void windowClosing(java.awt.event.WindowEvent evt)
+            {
+                System.exit(0);
+            }
+        });
+    }
+
+    public void serverPanel()
+    {
         serverPanel.setLayout(new BoxLayout(serverPanel, BoxLayout.PAGE_AXIS));
         serverPanel.setPreferredSize(new Dimension(250, 200));
         getCurrentConnectedReadings = new JButton("Server Current Readings");
@@ -339,8 +192,10 @@ public class MonitoringCentre extends JFrame
         serverPanel.add(serverListLabel);
         serverPanel.add(serverListScroll);
         serverPanel.add(getCurrentConnectedReadings);
+    }
 
-        //Station Panel
+    public void stationPanel()
+    {
         stationPanel.setLayout(new BoxLayout(stationPanel, BoxLayout.PAGE_AXIS));
         stationPanel.setPreferredSize(new Dimension(250, 200));
 
@@ -361,8 +216,10 @@ public class MonitoringCentre extends JFrame
         stationPanel.add(stationListLabel);
         stationPanel.add(stationListScroll);
         stationPanel.add(getStationReadings);
+    }
 
-        //Reading Panel
+    public void readingPanel()
+    {
         readingPanel.setLayout(new BoxLayout(readingPanel, BoxLayout.PAGE_AXIS));
         readingPanel.setPreferredSize(new Dimension(250, 200));
 
@@ -380,8 +237,10 @@ public class MonitoringCentre extends JFrame
 
         readingPanel.add(readingLabel);
         readingPanel.add(readingListScroll);
+    }
 
-        //Alert Panel
+    public void alertPanel()
+    {
         alertPanel.setLayout(new BoxLayout(alertPanel, BoxLayout.PAGE_AXIS));
         alertPanel.setPreferredSize(new Dimension(250, 200));
 
@@ -401,17 +260,10 @@ public class MonitoringCentre extends JFrame
         alertPanel.add(alertListScroll);
 
         getServerReadings = new JButton("Server Readings");
+    }
 
-        //Build Panel
-        panel.add(serverPanel);
-        panel.add(stationPanel);
-        panel.add(readingPanel);
-        panel.add(alertPanel);
-
-        panel.add(getAllReadings);
-        panel.add(getServerReadings);
-
-        //Agency Frame and Panel
+    public void agencyPanel()
+    {
         agencyPanel.setLayout(new BoxLayout(agencyPanel, BoxLayout.PAGE_AXIS));
         JLabel agencyLabel = new JLabel("Agency Name");
         agencyName = new JTextField();
@@ -421,6 +273,8 @@ public class MonitoringCentre extends JFrame
         contactField = new JTextField();
         registerAgency = new JButton("Register Agency");
 
+        agencyButton = new JButton("Agencies");
+
         agencyPanel.add(agencyLabel);
         agencyPanel.add(agencyName);
         agencyPanel.add(agencyLocation);
@@ -429,38 +283,21 @@ public class MonitoringCentre extends JFrame
         agencyPanel.add(contactField);
         agencyPanel.add(registerAgency);
 
-        agencyButton = new JButton("Agencies");
-        panel.add(agencyButton);
         agencyButton.addActionListener(new ActionListener()
         {
             @Override
             public void actionPerformed(ActionEvent actionEvent)
             {
-                //Open AgencyPanel in a new screen
                 agencyFrame = new JFrame();
                 agencyFrame.add(agencyPanel);
                 agencyFrame.setSize(150, 200);
                 agencyFrame.setVisible(true);
             }
         });
-
-        //Final setup
-        getContentPane().add(panel, "Center");
-        setSize(525, 475);
-
-        addWindowListener(new java.awt.event.WindowAdapter()
-        {
-            public void windowClosing(java.awt.event.WindowEvent evt)
-            {
-                System.exit(0);
-            }
-        });
     }
 
     public void setupButtons()
     {
-        //ToDo: Might be worth initialising stuff at class level and making methods to do setup GUI for each panel, then one to do listeners and put GUI together
-        //Button Listeners
         getServerReadings.addActionListener(new ActionListener()
         {
             @Override
@@ -536,9 +373,9 @@ public class MonitoringCentre extends JFrame
                     StationDetails[] stations = localServerServant.connected_stations();
                     ArrayList<Reading> pollReadings = new ArrayList<>();
 
-                    for(int i = 0; i < stations.length; i++)
+                    for (StationDetails stationDetails : stations)
                     {
-                        MonitoringStation station = MonitoringStationHelper.narrow(namingService.resolve_str(stations[i].station_name));
+                        MonitoringStation station = MonitoringStationHelper.narrow(namingService.resolve_str(stationDetails.station_name));
                         pollReadings.add(station.reading());
                     }
                     for(Reading reading: pollReadings)
@@ -609,7 +446,6 @@ public class MonitoringCentre extends JFrame
         }
     }
 
-    //Renderer classes to format our lists
     class ServerListCellRenderer extends DefaultListCellRenderer
     {
         @Override
@@ -701,5 +537,171 @@ public class MonitoringCentre extends JFrame
         {
             JOptionPane.showMessageDialog(frame, "Please provide all details", "Error", JOptionPane.WARNING_MESSAGE);
         }
+    }
+}
+
+
+class MonitoringCentreServant extends MonitoringCentrePOA
+{
+    private MonitoringCentre parent;
+    private ArrayList<ServerDetails> connectedServers;
+    private ArrayList<Reading> readings;
+    private ArrayList<Alert> alerts;
+    private ArrayList<Agency> agencies;
+
+    private NamingContextExt namingService;
+
+
+    public MonitoringCentreServant(MonitoringCentre parentGUI, ORB orbValue)
+    {
+        this.parent = parentGUI;
+        connectedServers = new ArrayList<>();
+        readings = new ArrayList<>();
+        alerts = new ArrayList<>();
+        agencies = new ArrayList<>();
+
+        try
+        {
+            org.omg.CORBA.Object namingServiceObj = orbValue.resolve_initial_references("NameService");
+            if(namingServiceObj == null)
+            {
+                System.out.println("Naming Service not registered");
+                return;
+            }
+
+            namingService = NamingContextExtHelper.narrow(namingServiceObj);
+        } catch(Exception e)
+        {
+            System.err.println("Error: " + e);
+            e.printStackTrace(System.out);
+        }
+    }
+
+    @Override
+    public Reading[] all_readings()
+    {
+        readings.clear();
+        for (ServerDetails connectedServer : connectedServers)
+        {
+            String name = connectedServer.server_name;
+            try
+            {
+                //Server Reference
+                LocalServer localServerServant = LocalServerHelper.narrow(namingService.resolve_str(name));
+                ArrayList<Reading> localReadings = new ArrayList<>(Arrays.asList(localServerServant.all_readings()));
+
+                //Check if we have any new readings
+                if (localReadings.size() != 0)
+                {
+                    for (Reading newReading : localReadings)
+                    {
+                        if (!readingReader(readings, newReading))
+                        {
+                            readings.add(newReading);
+                        }
+                    }
+                }
+            } catch (Exception e)
+            {
+                e.printStackTrace();
+            }
+        }
+        return readings.toArray(new Reading[0]);
+    }
+
+    @Override
+    public Reading[] get_readings(String server_name)
+    {
+        try
+        {
+            LocalServer localServer = LocalServerHelper.narrow(namingService.resolve_str(server_name));
+            return localServer.all_readings();
+        } catch(Exception e)
+        {
+            return new Reading[0];
+        }
+    }
+
+    @Override
+    public ServerDetails[] connected_servers()
+    {
+        return connectedServers.toArray(new ServerDetails[0]);
+    }
+
+    @Override
+    public void register_local_server(ServerDetails serverDetails)
+    {
+        connectedServers.add(serverDetails);
+        parent.addToServerList(serverDetails);
+    }
+
+    @Override
+    public void unregister_local_server(ServerDetails serverDetails)
+    {
+        connectedServers.removeIf(server -> server.server_name.equals(serverDetails.server_name));
+    }
+
+    @Override
+    public void send_alert(Alert alert)
+    {
+        EventQueue.invokeLater(new Runnable()
+        {
+            @Override
+            public void run()
+            {
+                alerts.add(alert);
+                parent.alertListModel.addElement(alert);
+                StringBuilder alertMessage = new StringBuilder("Alarm triggered at local server: " + alert.server_name);
+
+                for(int i = 0; i < alert.alerts.length; i++)
+                {
+                    //Format Time
+                    int yearInt = Year.now().getValue();
+                    Year year = Year.of(yearInt);
+                    LocalTime alertTime = LocalTime.MIN.plus(Duration.ofMinutes(alert.alerts[i].time));
+                    LocalDate alertDate = year.atDay(alert.alerts[i].date);
+
+                    alertMessage.append("\n").append(alert.alerts[i].station_name)
+                            .append(" - Reading Level: ").append(alert.alerts[i].reading_level)
+                            .append(" - Time: ").append(alertTime)
+                            .append("/").append(alertDate).append("\n");
+                }
+
+                //Contact agencies if they belong to the set region
+                ArrayList<Agency> localAgencies = agencies.stream().filter(
+                        a->a.agency_region.equals(alert.server_name)).collect(Collectors.toCollection(ArrayList::new));
+
+                if(localAgencies.size() > 0)
+                {
+                    for(Agency agency: localAgencies)
+                    {
+                        alertMessage.append(agency.agency_name).append(" is to be notified via: ")
+                                .append(agency.agency_contact).append("\n");
+                    }
+                }
+                JOptionPane.showMessageDialog(parent, alertMessage.toString());
+            }
+        });
+    }
+
+    @Override
+    public void register_agency(Agency agency)
+    {
+        agencies.add(agency);
+    }
+
+    public boolean readingReader(ArrayList<Reading> list, Reading r)
+    {
+        for(Reading reading: list)
+        {
+            if((reading.reading_level == r.reading_level)
+                    && (reading.station_name.equals(r.station_name))
+                    && (reading.date == r.date)
+                    && (reading.time == r.time))
+            {
+                return true;
+            }
+        }
+        return false;
     }
 }
