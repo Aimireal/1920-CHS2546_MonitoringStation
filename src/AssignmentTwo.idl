@@ -18,13 +18,13 @@ module AssignmentTwo {
                 string agency_region;
                 string agency_contact;
             };
+    typedef sequence<StationDetails> stationList;
+    typedef sequence<ServerDetails> serverList;
     typedef sequence<Reading> readings;
     struct Alert {
         string server_name;
         readings alerts;
     };
-    typedef sequence<StationDetails> stationList;
-    typedef sequence<ServerDetails> serverList;
     interface MonitoringStation {
         Reading reading();
         readonly attribute readings reading_log;
